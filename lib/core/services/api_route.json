@@ -1,0 +1,901 @@
+{
+  "apis": [
+    {
+      "method": "POST",
+      "path": "/api/signup",
+      "description": "Create new user account (signup)",
+      "request": {
+        "query": [
+          {"name": "user_email", "type": "string", "required": true},
+          {"name": "user_password", "type": "string", "required": true},
+          {"name": "user_password_confirmation", "type": "string", "required": true}
+        ],
+        "params": [],
+        "body": null
+      },
+      "response": {
+        "200": {
+          "schema": {
+            "status": "boolean",
+            "message": "string",
+            "user": {
+              "user_email": "string",
+              "user_role": "string",
+              "updated_at": "datetime",
+              "created_at": "datetime",
+              "id": "integer"
+            }
+          }
+        }
+      },
+      "required_roles": [],
+      "notes": "Default role is 'guest'. User must login after signup."
+    },
+    {
+      "method": "POST",
+      "path": "/api/login",
+      "description": "User login and get access token",
+      "request": {
+        "query": [
+          {"name": "user_email", "type": "string", "required": true},
+          {"name": "user_password", "type": "string", "required": true}
+        ],
+        "params": [],
+        "body": null
+      },
+      "response": {
+        "200": {
+          "schema": {
+            "status": "boolean",
+            "user": {
+              "id": "integer",
+              "user_email": "string",
+              "user_role": "string",
+              "created_at": "datetime",
+              "updated_at": "datetime"
+            },
+            "access_token": "string",
+            "token_type": "string",
+            "message": "string"
+          }
+        }
+      },
+      "required_roles": [],
+      "notes": "Returns Bearer token for authentication"
+    },
+    {
+      "method": "POST",
+      "path": "/api/register",
+      "description": "Register student data after signup",
+      "request": {
+        "query": [
+          {"name": "student_name", "type": "string", "required": true},
+          {"name": "student_phone", "type": "string", "required": true},
+          {"name": "student_university", "type": "string", "required": true},
+          {"name": "student_major", "type": "string", "required": true},
+          {"name": "student_city", "type": "string", "required": true},
+          {"name": "father_name", "type": "string", "required": true},
+          {"name": "father_phone", "type": "string", "required": true},
+          {"name": "skills", "type": "string", "required": true},
+          {"name": "user_email", "type": "string", "required": true},
+          {"name": "user_password", "type": "string", "required": true}
+        ],
+        "params": [],
+        "body": null
+      },
+      "response": {
+        "200": {
+          "schema": {
+            "status": "boolean",
+            "message": "string",
+            "student": {
+              "user_id": "integer",
+              "student_name": "string",
+              "student_phone": "string",
+              "student_university": "string",
+              "student_major": "string",
+              "student_city": "string",
+              "father_name": "string",
+              "father_phone": "string",
+              "skills": "string",
+              "updated_at": "datetime",
+              "created_at": "datetime",
+              "id": "integer"
+            }
+          }
+        }
+      },
+      "required_roles": ["guest"],
+      "notes": "Requires authenticated user. Links student to user_id."
+    },
+    {
+      "method": "GET",
+      "path": "/api/students",
+      "description": "Get all students list",
+      "request": {
+        "query": [],
+        "params": [],
+        "body": null
+      },
+      "response": {
+        "200": {
+          "schema": {
+            "type": "array",
+            "items": {
+              "id": "integer",
+              "user_id": "integer",
+              "student_name": "string",
+              "student_phone": "string",
+              "student_university": "string",
+              "student_major": "string",
+              "student_city": "string",
+              "father_name": "string",
+              "father_phone": "string",
+              "skills": "string",
+              "created_at": "datetime",
+              "updated_at": "datetime"
+            }
+          }
+        }
+      },
+      "required_roles": ["admin", "student"],
+      "notes": "Admin and Students can view all students"
+    },
+    {
+      "method": "GET",
+      "path": "/api/students/{id}",
+      "description": "Get single student details",
+      "request": {
+        "query": [],
+        "params": [
+          {"name": "id", "type": "integer", "required": true}
+        ],
+        "body": null
+      },
+      "response": {
+        "200": {
+          "schema": {
+            "success": "boolean",
+            "message": "string",
+            "data": {
+              "id": "integer",
+              "user_id": "integer",
+              "student_name": "string",
+              "student_phone": "string",
+              "student_university": "string",
+              "student_major": "string",
+              "student_city": "string",
+              "father_name": "string",
+              "father_phone": "string",
+              "skills": "string",
+              "created_at": "datetime",
+              "updated_at": "datetime"
+            }
+          }
+        }
+      },
+      "required_roles": ["admin", "student_owner"],
+      "notes": "Admin can view any student. Student can only view their own data."
+    },
+    {
+      "method": "PUT",
+      "path": "/api/students/{id}",
+      "description": "Update student data",
+      "request": {
+        "query": [
+          {"name": "student_name", "type": "string", "required": false},
+          {"name": "student_phone", "type": "string", "required": false},
+          {"name": "student_university", "type": "string", "required": false},
+          {"name": "student_major", "type": "string", "required": false},
+          {"name": "student_city", "type": "string", "required": false},
+          {"name": "father_name", "type": "string", "required": false},
+          {"name": "father_phone", "type": "string", "required": false},
+          {"name": "skills", "type": "string", "required": false}
+        ],
+        "params": [
+          {"name": "id", "type": "integer", "required": true}
+        ],
+        "body": null
+      },
+      "response": {
+        "200": {
+          "schema": {
+            "success": "boolean",
+            "message": "string",
+            "data": {
+              "id": "integer",
+              "user_id": "integer",
+              "student_name": "string",
+              "student_phone": "string",
+              "student_university": "string",
+              "student_major": "string",
+              "student_city": "string",
+              "father_name": "string",
+              "father_phone": "string",
+              "skills": "string",
+              "created_at": "datetime",
+              "updated_at": "datetime"
+            }
+          }
+        }
+      },
+      "required_roles": ["admin", "student_owner"],
+      "notes": "Partial update supported. Role restriction inferred."
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/students/{id}",
+      "description": "Delete a student",
+      "request": {
+        "query": [],
+        "params": [
+          {"name": "id", "type": "integer", "required": true}
+        ],
+        "body": null
+      },
+      "response": {
+        "200": {
+          "schema": {
+            "data": {
+              "id": "integer",
+              "user_id": "integer",
+              "student_name": "string",
+              "student_phone": "string",
+              "student_university": "string",
+              "student_major": "string",
+              "student_city": "string",
+              "father_name": "string",
+              "father_phone": "string",
+              "skills": "string",
+              "created_at": "datetime",
+              "updated_at": "datetime"
+            },
+            "success": "boolean",
+            "message": "string"
+          }
+        }
+      },
+      "required_roles": ["admin"],
+      "notes": "Admin only can delete students"
+    },
+    {
+      "method": "GET",
+      "path": "/api/violations",
+      "description": "Get all violations list",
+      "request": {
+        "query": [],
+        "params": [],
+        "body": null
+      },
+      "response": {
+        "200": {
+          "schema": {
+            "type": "array",
+            "items": {
+              "id": "integer",
+              "student_id": "integer",
+              "title": "string",
+              "discipline": "string",
+              "created_at": "datetime",
+              "updated_at": "datetime",
+              "student": {
+                "id": "integer",
+                "student_name": "string"
+              }
+            }
+          }
+        }
+      },
+      "required_roles": ["admin", "student"],
+      "notes": "Admin and Students can view all violations"
+    },
+    {
+      "method": "GET",
+      "path": "/api/violations/{id}",
+      "description": "Get single violation details",
+      "request": {
+        "query": [],
+        "params": [
+          {"name": "id", "type": "integer", "required": true}
+        ],
+        "body": null
+      },
+      "response": {
+        "200": {
+          "schema": {
+            "success": "boolean",
+            "message": "string",
+            "data": {
+              "id": "integer",
+              "student_id": "integer",
+              "title": "string",
+              "discipline": "string",
+              "created_at": "datetime",
+              "updated_at": "datetime",
+              "student": {
+                "id": "integer",
+                "student_name": "string"
+              }
+            }
+          }
+        }
+      },
+      "required_roles": ["admin", "student"],
+      "notes": "Admin and Student can view violation details"
+    },
+    {
+      "method": "POST",
+      "path": "/api/violations",
+      "description": "Add violation to a student",
+      "request": {
+        "query": [
+          {"name": "student_id", "type": "integer", "required": true},
+          {"name": "student_name", "type": "string", "required": true},
+          {"name": "title", "type": "string", "required": true},
+          {"name": "discipline", "type": "string", "required": true}
+        ],
+        "params": [],
+        "body": null
+      },
+      "response": {
+        "200": {
+          "schema": {
+            "success": "boolean",
+            "data": {
+              "student_id": "integer",
+              "title": "string",
+              "discipline": "string",
+              "updated_at": "datetime",
+              "created_at": "datetime",
+              "id": "integer"
+            },
+            "message": "string"
+          }
+        }
+      },
+      "required_roles": ["admin"],
+      "notes": "Admin only can add violations"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/violations/{id}",
+      "description": "Update student violation",
+      "request": {
+        "query": [
+          {"name": "student_id", "type": "integer", "required": false},
+          {"name": "student_name", "type": "string", "required": false},
+          {"name": "title", "type": "string", "required": false},
+          {"name": "discipline", "type": "string", "required": false}
+        ],
+        "params": [
+          {"name": "id", "type": "integer", "required": true}
+        ],
+        "body": null
+      },
+      "response": {
+        "200": {
+          "schema": {
+            "success": "boolean",
+            "data": {
+              "id": "integer",
+              "student_id": "string",
+              "title": "string",
+              "discipline": "string",
+              "created_at": "datetime",
+              "updated_at": "datetime"
+            },
+            "message": "string"
+          }
+        }
+      },
+      "required_roles": ["admin"],
+      "notes": "Admin only can update violations"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/violations/{id}",
+      "description": "Delete student violation",
+      "request": {
+        "query": [],
+        "params": [
+          {"name": "id", "type": "integer", "required": true}
+        ],
+        "body": null
+      },
+      "response": {
+        "200": {
+          "schema": {
+            "data": {
+              "id": "integer",
+              "student_id": "integer",
+              "title": "string",
+              "discipline": "string",
+              "created_at": "datetime",
+              "updated_at": "datetime"
+            },
+            "success": "boolean",
+            "message": "string"
+          }
+        }
+      },
+      "required_roles": ["admin"],
+      "notes": "Admin only can delete violations"
+    },
+    {
+      "method": "GET",
+      "path": "/api/payments",
+      "description": "Get all payments list",
+      "request": {
+        "query": [],
+        "params": [],
+        "body": null
+      },
+      "response": {
+        "200": {
+          "schema": {
+            "type": "array",
+            "items": {
+              "id": "integer",
+              "student_id": "integer",
+              "food_payment": "integer",
+              "housing_payment": "integer",
+              "totle_payment": "integer",
+              "payment_month": "string",
+              "created_at": "datetime",
+              "updated_at": "datetime",
+              "student": {
+                "id": "integer",
+                "student_name": "string"
+              }
+            }
+          }
+        }
+      },
+      "required_roles": ["admin", "student"],
+      "notes": "Field 'totle_payment' appears to be a typo for 'total_payment'"
+    },
+    {
+      "method": "POST",
+      "path": "/api/payments",
+      "description": "Add payment for a student",
+      "request": {
+        "query": [
+          {"name": "student_id", "type": "integer", "required": true},
+          {"name": "student_name", "type": "string", "required": true},
+          {"name": "food_payment", "type": "integer", "required": true},
+          {"name": "housing_payment", "type": "integer", "required": true},
+          {"name": "payment_month", "type": "string", "required": true, "enum": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]}
+        ],
+        "params": [],
+        "body": null
+      },
+      "response": {
+        "200": {
+          "schema": {
+            "success": "boolean",
+            "message": "string",
+            "data": {
+              "student_id": "string",
+              "food_payment": "string",
+              "housing_payment": "string",
+              "payment_month": "string",
+              "totle_payment": "integer",
+              "updated_at": "datetime",
+              "created_at": "datetime",
+              "id": "integer"
+            }
+          }
+        }
+      },
+      "required_roles": ["admin"],
+      "notes": "Admin only. payment_month is stored as enum. totle_payment is auto-calculated."
+    },
+    {
+      "method": "PUT",
+      "path": "/api/payments/{id}",
+      "description": "Update student payment",
+      "request": {
+        "query": [
+          {"name": "student_id", "type": "integer", "required": false},
+          {"name": "student_name", "type": "string", "required": false},
+          {"name": "food_payment", "type": "integer", "required": false},
+          {"name": "housing_payment", "type": "integer", "required": false},
+          {"name": "payment_month", "type": "string", "required": false}
+        ],
+        "params": [
+          {"name": "id", "type": "integer", "required": true}
+        ],
+        "body": null
+      },
+      "response": {
+        "200": {
+          "schema": {
+            "data": {
+              "id": "integer",
+              "student_id": "string",
+              "food_payment": "string",
+              "housing_payment": "integer",
+              "totle_payment": "integer",
+              "payment_month": "string",
+              "created_at": "datetime",
+              "updated_at": "datetime"
+            },
+            "success": "boolean",
+            "message": "string"
+          }
+        }
+      },
+      "required_roles": ["admin"],
+      "notes": "Admin only can update payments. totle_payment is recalculated."
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/payments/{id}",
+      "description": "Delete student payment",
+      "request": {
+        "query": [],
+        "params": [
+          {"name": "id", "type": "integer", "required": true}
+        ],
+        "body": null
+      },
+      "response": {
+        "200": {
+          "schema": {
+            "data": {
+              "id": "integer",
+              "student_id": "integer",
+              "food_payment": "integer",
+              "housing_payment": "integer",
+              "totle_payment": "integer",
+              "payment_month": "string",
+              "created_at": "datetime",
+              "updated_at": "datetime"
+            },
+            "success": "boolean",
+            "message": "string"
+          }
+        }
+      },
+      "required_roles": ["admin"],
+      "notes": "Admin only can delete payments"
+    },
+    {
+      "method": "GET",
+      "path": "/api/news",
+      "description": "Get all news list",
+      "request": {
+        "query": [],
+        "params": [],
+        "body": null
+      },
+      "response": {
+        "200": {
+          "schema": {
+            "type": "array",
+            "items": {
+              "id": "integer",
+              "title": "string",
+              "description": "string",
+              "created_at": "datetime",
+              "updated_at": "datetime"
+            }
+          }
+        }
+      },
+      "required_roles": ["admin", "student"],
+      "notes": "Admin and Students can view all news"
+    },
+    {
+      "method": "POST",
+      "path": "/api/news",
+      "description": "Add new news item",
+      "request": {
+        "query": [
+          {"name": "title", "type": "string", "required": true},
+          {"name": "description", "type": "string", "required": true}
+        ],
+        "params": [],
+        "body": null
+      },
+      "response": {
+        "200": {
+          "schema": {
+            "success": "boolean",
+            "data": {
+              "title": "string",
+              "description": "string",
+              "updated_at": "datetime",
+              "created_at": "datetime",
+              "id": "integer"
+            },
+            "message": "string"
+          }
+        }
+      },
+      "required_roles": ["admin"],
+      "notes": "Admin only can add news"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/news/{id}",
+      "description": "Delete news item",
+      "request": {
+        "query": [],
+        "params": [
+          {"name": "id", "type": "integer", "required": true}
+        ],
+        "body": null
+      },
+      "response": {
+        "200": {
+          "schema": {
+            "data": {
+              "id": "integer",
+              "title": "string",
+              "description": "string",
+              "created_at": "datetime",
+              "updated_at": "datetime"
+            },
+            "success": "boolean",
+            "message": "string"
+          }
+        }
+      },
+      "required_roles": ["admin"],
+      "notes": "Admin only can delete news"
+    },
+    {
+      "method": "GET",
+      "path": "/api/responsibilities",
+      "description": "Get all responsibilities list",
+      "request": {
+        "query": [],
+        "params": [],
+        "body": null
+      },
+      "response": {
+        "200": {
+          "schema": {
+            "type": "array",
+            "items": {
+              "id": "integer",
+              "title": "string",
+              "description": "string",
+              "date": "date",
+              "created_at": "datetime",
+              "updated_at": "datetime"
+            }
+          }
+        }
+      },
+      "required_roles": ["admin", "student"],
+      "notes": "Admin and Students can view all responsibilities"
+    },
+    {
+      "method": "POST",
+      "path": "/api/responsibilities",
+      "description": "Add new responsibility",
+      "request": {
+        "query": [
+          {"name": "title", "type": "string", "required": true},
+          {"name": "description", "type": "string", "required": true},
+          {"name": "date", "type": "date", "required": true, "format": "YYYY-MM-DD"}
+        ],
+        "params": [],
+        "body": null
+      },
+      "response": {
+        "200": {
+          "schema": {
+            "success": "boolean",
+            "data": {
+              "title": "string",
+              "description": "string",
+              "date": "date",
+              "updated_at": "datetime",
+              "created_at": "datetime",
+              "id": "integer"
+            },
+            "message": "string"
+          }
+        }
+      },
+      "required_roles": ["admin"],
+      "notes": "Admin only can add responsibilities"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/responsibilities/{id}",
+      "description": "Update responsibility",
+      "request": {
+        "query": [
+          {"name": "title", "type": "string", "required": false},
+          {"name": "description", "type": "string", "required": false},
+          {"name": "date", "type": "date", "required": false}
+        ],
+        "params": [
+          {"name": "id", "type": "integer", "required": true}
+        ],
+        "body": null
+      },
+      "response": {
+        "200": {
+          "schema": {
+            "success": "boolean",
+            "data": {
+              "id": "integer",
+              "title": "string",
+              "description": "string",
+              "date": "date",
+              "created_at": "datetime",
+              "updated_at": "datetime"
+            },
+            "message": "string"
+          }
+        }
+      },
+      "required_roles": ["admin"],
+      "notes": "Admin only can update responsibilities"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/responsibilities/{id}",
+      "description": "Delete responsibility",
+      "request": {
+        "query": [],
+        "params": [
+          {"name": "id", "type": "integer", "required": true}
+        ],
+        "body": null
+      },
+      "response": {
+        "200": {
+          "schema": {
+            "data": {
+              "id": "integer",
+              "title": "string",
+              "description": "string",
+              "date": "date",
+              "created_at": "datetime",
+              "updated_at": "datetime"
+            },
+            "success": "boolean",
+            "message": "string"
+          }
+        }
+      },
+      "required_roles": ["admin"],
+      "notes": "Admin only can delete responsibilities"
+    },
+    {
+      "method": "GET",
+      "path": "/api/complaints",
+      "description": "Get all complaints list",
+      "request": {
+        "query": [],
+        "params": [],
+        "body": null
+      },
+      "response": {
+        "200": {
+          "schema": {
+            "type": "array",
+            "items": {
+              "id": "integer",
+              "student_id": "integer",
+              "description": "string",
+              "created_at": "datetime",
+              "updated_at": "datetime",
+              "student": {
+                "id": "integer",
+                "student_name": "string"
+              }
+            }
+          }
+        }
+      },
+      "required_roles": ["admin", "student"],
+      "notes": "Admin and Students can view all complaints"
+    },
+    {
+      "method": "GET",
+      "path": "/api/complaints/{id}",
+      "description": "Get single complaint details",
+      "request": {
+        "query": [],
+        "params": [
+          {"name": "id", "type": "integer", "required": true}
+        ],
+        "body": null
+      },
+      "response": {
+        "200": {
+          "schema": {
+            "success": "boolean",
+            "message": "string",
+            "data": {
+              "id": "integer",
+              "student_id": "integer",
+              "description": "string",
+              "created_at": "datetime",
+              "updated_at": "datetime",
+              "student": {
+                "id": "integer",
+                "student_name": "string"
+              }
+            }
+          }
+        },
+        "404": {
+          "schema": {
+            "success": "boolean",
+            "message": "string"
+          }
+        }
+      },
+      "required_roles": ["admin", "student"],
+      "notes": "Admin and Student can view complaint details"
+    },
+    {
+      "method": "POST",
+      "path": "/api/complaints",
+      "description": "Add new complaint",
+      "request": {
+        "query": [
+          {"name": "student_id", "type": "integer", "required": true},
+          {"name": "student_name", "type": "string", "required": true},
+          {"name": "description", "type": "string", "required": true}
+        ],
+        "params": [],
+        "body": null
+      },
+      "response": {
+        "200": {
+          "schema": {
+            "success": "boolean",
+            "data": {
+              "student_id": "integer",
+              "description": "string",
+              "updated_at": "datetime",
+              "created_at": "datetime",
+              "id": "integer"
+            },
+            "message": "string"
+          }
+        }
+      },
+      "required_roles": ["student"],
+      "notes": "Student only can add complaints"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/complaints/{id}",
+      "description": "Delete complaint",
+      "request": {
+        "query": [],
+        "params": [
+          {"name": "id", "type": "integer", "required": true}
+        ],
+        "body": null
+      },
+      "response": {
+        "200": {
+          "schema": {
+            "data": {
+              "id": "integer",
+              "student_id": "integer",
+              "description": "string",
+              "created_at": "datetime",
+              "updated_at": "datetime"
+            },
+            "success": "boolean",
+            "message": "string"
+          }
+        }
+      },
+      "required_roles": ["admin", "student"],
+      "notes": "Admin and Student can delete complaints"
+    }
+  ]
+}
