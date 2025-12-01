@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:almaali_university_center/core/constants/app_colors.dart';
 import 'package:almaali_university_center/core/theme/app_theme.dart';
 import 'package:almaali_university_center/core/widgets/logo_widget.dart';
 import 'package:almaali_university_center/core/widgets/admin_app_bar.dart';
-import 'package:almaali_university_center/features/admin/presentation/widgets/student_dropdown.dart';
 import 'package:almaali_university_center/features/admin/presentation/widgets/violation_form_card.dart';
 import 'package:almaali_university_center/features/admin/presentation/widgets/violation_input_field.dart';
+import 'package:almaali_university_center/features/students/data/model/student_model.dart';
+import 'package:almaali_university_center/logic/cubits/students/students_cubit.dart';
+import 'package:almaali_university_center/logic/cubits/students/students_state.dart';
+import 'package:almaali_university_center/logic/cubits/violations/violations_cubit.dart';
+import 'package:almaali_university_center/logic/cubits/violations/violations_state.dart';
 
 class AddViolationScreen extends StatefulWidget {
   const AddViolationScreen({super.key});
@@ -15,27 +20,25 @@ class AddViolationScreen extends StatefulWidget {
 }
 
 class _AddViolationScreenState extends State<AddViolationScreen> {
-  String? _selectedStudent;
+  Student? _selectedStudent;
   final TextEditingController _violationController = TextEditingController();
   final TextEditingController _penaltyController = TextEditingController();
-  final TextEditingController _notesController = TextEditingController();
 
-  // Sample student list
-  final List<String> _students = [
-    'أحمد محمد علي',
-    'محمد أحمد سعيد',
-    'علي حسن محمد',
-  ];
+  @override
+  void initState() {
+    super.initState();
+    // تحميل قائمة الطلاب من API
+    context.read<StudentsCubit>().loadStudents();
+  }
 
   @override
   void dispose() {
     _violationController.dispose();
     _penaltyController.dispose();
-    _notesController.dispose();
     super.dispose();
   }
 
-  void _addViolation() {
+  Future<void> _addViolation() async {
     if (_selectedStudent == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -56,21 +59,21 @@ class _AddViolationScreenState extends State<AddViolationScreen> {
       return;
     }
 
-    // Add violation logic here
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('تم إضافة المخالفة بنجاح'),
-        backgroundColor: Colors.green,
-      ),
+    // استدعاء API لإضافة المخالفة
+    final success = await context.read<ViolationsCubit>().addViolation(
+      studentId: _selectedStudent!.id,
+      studentName: _selectedStudent!.name,
+      title: _violationController.text,
+      discipline: _penaltyController.text,
     );
 
-    // Clear form
-    setState(() {
-      _selectedStudent = null;
-      _violationController.clear();
-      _penaltyController.clear();
-      _notesController.clear();
-    });
+    if (success && mounted) {
+      setState(() {
+        _selectedStudent = null;
+        _violationController.clear();
+        _penaltyController.clear();
+      });
+    }
   }
 
   @override
@@ -103,14 +106,49 @@ class _AddViolationScreenState extends State<AddViolationScreen> {
 
               const SizedBox(height: 16),
 
-              // Student Dropdown
-              StudentDropdown(
-                selectedStudent: _selectedStudent,
-                students: _students,
-                onChanged: (value) {
-                  setState(() {
-                    _selectedStudent = value;
-                  });
+              // Student Dropdown from API
+              BlocBuilder<StudentsCubit, StudentsState>(
+                builder: (context, state) {
+                  if (state.isLoading) {
+                    return const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+                  return Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 24),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryBlue,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<Student>(
+                        value: _selectedStudent,
+                        hint: const Text(
+                          'اختر الطالب',
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                        isExpanded: true,
+                        dropdownColor: AppColors.primaryBlue,
+                        icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+                        items: state.students.map((student) {
+                          return DropdownMenuItem<Student>(
+                            value: student,
+                            child: Text(
+                              student.name,
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedStudent = value;
+                          });
+                        },
+                      ),
+                    ),
+                  );
                 },
               ),
 
@@ -128,41 +166,68 @@ class _AddViolationScreenState extends State<AddViolationScreen> {
                     label: 'العقوبـــة',
                     controller: _penaltyController,
                   ),
-                  const SizedBox(height: 24),
-                  ViolationInputField(
-                    label: 'ملاحظـــات',
-                    controller: _notesController,
-                    maxLines: 5,
-                  ),
                 ],
               ),
 
               const SizedBox(height: 24),
 
-              // Add Button
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _addViolation,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryGold,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+              // Add Button with loading state
+              BlocConsumer<ViolationsCubit, ViolationsState>(
+                listener: (context, state) {
+                  if (state.successMessage != null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(state.successMessage!),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                    context.read<ViolationsCubit>().clearSuccess();
+                  }
+                  if (state.errorMessage != null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(state.errorMessage!),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                    context.read<ViolationsCubit>().clearError();
+                  }
+                },
+                builder: (context, state) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: state.isSubmitting ? null : _addViolation,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryGold,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: state.isSubmitting
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  color: AppColors.textLight,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                'إضافــــة',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textLight,
+                                ),
+                              ),
                       ),
                     ),
-                    child: const Text(
-                      'إضافــــة',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textLight,
-                      ),
-                    ),
-                  ),
-                ),
+                  );
+                },
               ),
 
               const SizedBox(height: 24),

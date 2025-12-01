@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:almaali_university_center/core/constants/app_colors.dart';
 import 'package:almaali_university_center/core/theme/app_theme.dart';
 import 'package:almaali_university_center/core/widgets/logo_widget.dart';
@@ -7,6 +8,8 @@ import 'package:almaali_university_center/core/widgets/admin_bottom_nav.dart';
 import 'package:almaali_university_center/features/admin/presentation/pages/admin_main_screen.dart';
 import 'package:almaali_university_center/features/admin/presentation/pages/violation_screen.dart';
 import 'package:almaali_university_center/features/admin/presentation/pages/payments_screen.dart';
+import 'package:almaali_university_center/logic/cubits/news/news_cubit.dart';
+import 'package:almaali_university_center/logic/cubits/news/news_state.dart';
 
 class NewsScreen extends StatefulWidget {
   const NewsScreen({super.key});
@@ -54,8 +57,7 @@ class _NewsScreenState extends State<NewsScreen> {
     }
   }
 
-  void _addNews() {
-    // Add news logic
+  Future<void> _addNews() async {
     final title = _titleController.text;
     final details = _detailsController.text;
 
@@ -69,16 +71,16 @@ class _NewsScreenState extends State<NewsScreen> {
       return;
     }
 
-    // Clear fields after adding
-    _titleController.clear();
-    _detailsController.clear();
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('تم إضافة الخبر بنجاح'),
-        backgroundColor: Colors.green,
-      ),
+    // استدعاء API لإضافة الخبر
+    final success = await context.read<NewsCubit>().addNews(
+      title: title,
+      description: details,
     );
+
+    if (success && mounted) {
+      _titleController.clear();
+      _detailsController.clear();
+    }
   }
 
   @override
@@ -237,29 +239,62 @@ class _NewsScreenState extends State<NewsScreen> {
               ),
             ),
 
-            // Add Button
+            // Add Button with loading state
             Padding(
               padding: const EdgeInsets.all(24),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _addNews,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryGold,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
+              child: BlocConsumer<NewsCubit, NewsState>(
+                listener: (context, state) {
+                  if (state.successMessage != null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(state.successMessage!),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                    context.read<NewsCubit>().clearSuccess();
+                  }
+                  if (state.errorMessage != null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(state.errorMessage!),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                    context.read<NewsCubit>().clearError();
+                  }
+                },
+                builder: (context, state) {
+                  return SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: state.isSubmitting ? null : _addNews,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryGold,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                      ),
+                      child: state.isSubmitting
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                color: AppColors.textLight,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text(
+                              'إضافــــة',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textLight,
+                              ),
+                            ),
                     ),
-                  ),
-                  child: const Text(
-                    'إضافــــة',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textLight,
-                    ),
-                  ),
-                ),
+                  );
+                },
               ),
             ),
           ],
