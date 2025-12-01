@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:almaali_university_center/core/constants/app_colors.dart';
 import 'package:almaali_university_center/core/theme/app_theme.dart';
 import 'package:almaali_university_center/core/widgets/logo_widget.dart';
+import 'package:almaali_university_center/features/admin/data/models/violation_model.dart';
 import 'package:almaali_university_center/features/admin/presentation/widgets/violation_form_card.dart';
 import 'package:almaali_university_center/features/admin/presentation/widgets/violation_input_field.dart';
-import 'package:almaali_university_center/features/admin/presentation/pages/violations_screen.dart';
 
 class ViewViolationScreen extends StatelessWidget {
-  final ViolationItem violation;
+  final Violation violation;
 
   const ViewViolationScreen({super.key, required this.violation});
 
@@ -45,27 +45,28 @@ class ViewViolationScreen extends StatelessWidget {
                 children: [
                   ViolationInputField(
                     label: 'الطالـــب',
-                    initialValue: violation.studentName,
+                    initialValue: violation.studentName ?? 'غير محدد',
                     readOnly: true,
                   ),
                   const SizedBox(height: 24),
                   ViolationInputField(
                     label: 'المخالفــة',
-                    initialValue: violation.violation,
+                    initialValue: violation.title,
                     readOnly: true,
                   ),
                   const SizedBox(height: 24),
                   ViolationInputField(
                     label: 'العقوبـــة',
-                    initialValue: violation.penalty ?? 'لم يتم تحديد العقوبة',
+                    initialValue: violation.discipline.isNotEmpty 
+                        ? violation.discipline 
+                        : 'لم يتم تحديد العقوبة',
                     readOnly: true,
                   ),
                   const SizedBox(height: 24),
                   ViolationInputField(
-                    label: 'ملاحظـــات',
-                    initialValue: violation.notes ?? 'لا توجد ملاحظات',
+                    label: 'تاريخ الإنشاء',
+                    initialValue: violation.createdAt?.toString().split(' ')[0] ?? 'غير محدد',
                     readOnly: true,
-                    maxLines: 5,
                   ),
                 ],
               ),

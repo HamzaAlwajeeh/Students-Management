@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:almaali_university_center/core/constants/app_colors.dart';
 import 'package:almaali_university_center/core/theme/app_theme.dart';
 import 'package:almaali_university_center/core/widgets/logo_widget.dart';
+import 'package:almaali_university_center/features/admin/data/models/payment_model.dart';
 import 'package:almaali_university_center/features/admin/presentation/widgets/violation_form_card.dart';
 import 'package:almaali_university_center/features/admin/presentation/widgets/violation_input_field.dart';
-import 'package:almaali_university_center/features/admin/presentation/pages/payments_screen.dart';
+import 'package:almaali_university_center/logic/cubits/payments/payments_cubit.dart';
 
 class EditPaymentScreen extends StatefulWidget {
-  final PaymentItem payment;
+  final Payment payment;
 
   const EditPaymentScreen({super.key, required this.payment});
 
@@ -20,28 +22,25 @@ class _EditPaymentScreenState extends State<EditPaymentScreen> {
   late TextEditingController _nutritionController;
   late TextEditingController _housingController;
   late TextEditingController _totalController;
-  late TextEditingController _remainingController;
   late TextEditingController _monthController;
+  bool _isSubmitting = false;
 
   @override
   void initState() {
     super.initState();
     _studentController = TextEditingController(
-      text: widget.payment.studentName,
+      text: widget.payment.studentName ?? '',
     );
     _nutritionController = TextEditingController(
-      text: widget.payment.nutrition.toStringAsFixed(0),
+      text: widget.payment.foodPayment.toString(),
     );
     _housingController = TextEditingController(
-      text: widget.payment.housing.toStringAsFixed(0),
+      text: widget.payment.housingPayment.toString(),
     );
     _totalController = TextEditingController(
-      text: widget.payment.total.toStringAsFixed(0),
+      text: widget.payment.totalPayment.toString(),
     );
-    _remainingController = TextEditingController(
-      text: widget.payment.remaining?.toStringAsFixed(0) ?? '0',
-    );
-    _monthController = TextEditingController(text: widget.payment.month);
+    _monthController = TextEditingController(text: widget.payment.paymentMonth);
   }
 
   @override
@@ -50,21 +49,19 @@ class _EditPaymentScreenState extends State<EditPaymentScreen> {
     _nutritionController.dispose();
     _housingController.dispose();
     _totalController.dispose();
-    _remainingController.dispose();
     _monthController.dispose();
     super.dispose();
   }
 
   void _calculateTotal() {
-    final nutrition = double.tryParse(_nutritionController.text) ?? 0;
-    final housing = double.tryParse(_housingController.text) ?? 0;
+    final nutrition = int.tryParse(_nutritionController.text) ?? 0;
+    final housing = int.tryParse(_housingController.text) ?? 0;
     final total = nutrition + housing;
-    _totalController.text = total.toStringAsFixed(0);
+    _totalController.text = total.toString();
   }
 
-  void _saveChanges() {
-    if (_studentController.text.isEmpty ||
-        _nutritionController.text.isEmpty ||
+  Future<void> _saveChanges() async {
+    if (_nutritionController.text.isEmpty ||
         _housingController.text.isEmpty ||
         _monthController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -76,14 +73,20 @@ class _EditPaymentScreenState extends State<EditPaymentScreen> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('تم حفظ التعديلات بنجاح'),
-        backgroundColor: Colors.green,
-      ),
+    setState(() => _isSubmitting = true);
+
+    final success = await context.read<PaymentsCubit>().updatePayment(
+      id: widget.payment.id,
+      foodPayment: int.tryParse(_nutritionController.text) ?? 0,
+      housingPayment: int.tryParse(_housingController.text) ?? 0,
+      paymentMonth: _monthController.text,
     );
 
-    Navigator.pop(context);
+    setState(() => _isSubmitting = false);
+
+    if (success && mounted) {
+      Navigator.pop(context);
+    }
   }
 
   @override
@@ -113,6 +116,7 @@ class _EditPaymentScreenState extends State<EditPaymentScreen> {
                   ViolationInputField(
                     label: 'الطالـــب',
                     controller: _studentController,
+                    readOnly: true,
                   ),
                   const SizedBox(height: 20),
                   ViolationInputField(
@@ -134,18 +138,13 @@ class _EditPaymentScreenState extends State<EditPaymentScreen> {
                   ),
                   const SizedBox(height: 20),
                   ViolationInputField(
-                    label: 'المتبقي',
-                    controller: _remainingController,
-                  ),
-                  const SizedBox(height: 20),
-                  ViolationInputField(
                     label: 'الشهر',
                     controller: _monthController,
                   ),
                   const SizedBox(height: 24),
                   Center(
                     child: ElevatedButton(
-                      onPressed: _saveChanges,
+                      onPressed: _isSubmitting ? null : _saveChanges,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.textLight,
                         foregroundColor: AppColors.primaryBlue,
@@ -157,13 +156,19 @@ class _EditPaymentScreenState extends State<EditPaymentScreen> {
                           borderRadius: BorderRadius.circular(25),
                         ),
                       ),
-                      child: const Text(
-                        'حفظ التعديلات',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      child: _isSubmitting
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text(
+                              'حفظ التعديلات',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                     ),
                   ),
                 ],

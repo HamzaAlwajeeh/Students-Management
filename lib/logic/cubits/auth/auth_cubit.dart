@@ -110,6 +110,54 @@ class AuthCubit extends Cubit<AuthState> {
     }
   }
 
+  /// تسجيل طالب جديد في المركز
+  Future<Map<String, dynamic>> register({
+    required String name,
+    required String phone,
+    required String address,
+    required String specialization,
+    String? university,
+    String? fatherName,
+    String? fatherPhone,
+    String? skills,
+  }) async {
+    try {
+      emit(state.copyWith(isLoading: true, errorMessage: null));
+
+      var data = await apiService.post(
+        endPoint: 'register',
+        body: {
+          'student_name': name,
+          'student_phone': phone,
+          'student_city': address,
+          'student_major': specialization,
+          'student_university': university ?? '',
+          'father_name': fatherName ?? '',
+          'father_phone': fatherPhone ?? '',
+          'skills': skills ?? '',
+        },
+        token: null,
+      );
+
+      emit(
+        state.copyWith(
+          isLoading: false,
+          successMessage: 'تم تقديم طلب التسجيل بنجاح',
+        ),
+      );
+
+      return {'success': true, 'data': data};
+    } catch (e) {
+      emit(
+        state.copyWith(
+          isLoading: false,
+          errorMessage: 'فشل تقديم طلب التسجيل: $e',
+        ),
+      );
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
   /// إعادة تعيين الحالة
   void reset() {
     emit(const AuthState());

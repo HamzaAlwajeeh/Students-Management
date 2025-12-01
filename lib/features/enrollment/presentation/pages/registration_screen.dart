@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:almaali_university_center/core/constants/app_colors.dart';
 import 'package:almaali_university_center/core/widgets/logo_widget.dart';
 import 'package:almaali_university_center/core/widgets/admin_app_bar.dart';
 import 'package:almaali_university_center/features/admin/presentation/widgets/violation_form_card.dart';
 import 'package:almaali_university_center/features/admin/presentation/widgets/violation_input_field.dart';
 import 'package:almaali_university_center/features/enrollment/presentation/pages/accepted_screen.dart';
-import 'package:almaali_university_center/features/enrollment/presentation/pages/rejected_screen.dart';
+import 'package:almaali_university_center/logic/cubits/auth/auth_cubit.dart';
+import 'package:almaali_university_center/logic/cubits/auth/auth_state.dart';
 
 class RegistrationScreen extends StatefulWidget {
   const RegistrationScreen({super.key});
@@ -20,6 +22,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final TextEditingController _addressController = TextEditingController();
   final TextEditingController _specializationController =
       TextEditingController();
+  final TextEditingController _universityController = TextEditingController();
 
   @override
   void dispose() {
@@ -27,28 +30,36 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     _phoneController.dispose();
     _addressController.dispose();
     _specializationController.dispose();
+    _universityController.dispose();
     super.dispose();
   }
 
-  void _submitRegistration() {
+  Future<void> _submitRegistration() async {
     if (_nameController.text.isEmpty ||
         _phoneController.text.isEmpty ||
         _addressController.text.isEmpty ||
         _specializationController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('الرجاء ملء جميع الحقول'),
+          content: Text('الرجاء ملء جميع الحقول المطلوبة'),
           backgroundColor: Colors.red,
         ),
       );
       return;
     }
 
-    // Simulate approval/rejection (in real app, this would be an API call)
-    // For demo: approve if name length > 5, otherwise reject
-    final isApproved = _nameController.text.length > 5;
+    // استدعاء API للتسجيل
+    final result = await context.read<AuthCubit>().register(
+      name: _nameController.text,
+      phone: _phoneController.text,
+      address: _addressController.text,
+      specialization: _specializationController.text,
+      university: _universityController.text,
+    );
 
-    if (isApproved) {
+    if (!mounted) return;
+
+    if (result['success'] == true) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -56,9 +67,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         ),
       );
     } else {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const RejectedScreen()),
+      // في حالة الفشل، عرض رسالة الخطأ
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['error'] ?? 'فشل تقديم الطلب'),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
@@ -96,49 +110,67 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               ViolationFormCard(
                 children: [
                   ViolationInputField(
-                    label: 'الاسم الكامل',
+                    label: 'الاسم الكامل *',
                     controller: _nameController,
                   ),
                   const SizedBox(height: 20),
                   ViolationInputField(
-                    label: 'رقم الهاتف',
+                    label: 'رقم الهاتف *',
                     controller: _phoneController,
                   ),
                   const SizedBox(height: 20),
                   ViolationInputField(
-                    label: 'العنوان',
+                    label: 'المدينة / العنوان *',
                     controller: _addressController,
                   ),
                   const SizedBox(height: 20),
                   ViolationInputField(
-                    label: 'التخصص',
+                    label: 'التخصص *',
                     controller: _specializationController,
+                  ),
+                  const SizedBox(height: 20),
+                  ViolationInputField(
+                    label: 'الجامعة',
+                    controller: _universityController,
                   ),
                 ],
               ),
               const SizedBox(height: 24),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _submitRegistration,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryGold,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                child: BlocBuilder<AuthCubit, AuthState>(
+                  builder: (context, state) {
+                    return SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: state.isLoading ? null : _submitRegistration,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryGold,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: state.isLoading
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  color: AppColors.textLight,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                'تقديم الطلب',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textLight,
+                                ),
+                              ),
                       ),
-                    ),
-                    child: const Text(
-                      'تقديم الطلب',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textLight,
-                      ),
-                    ),
-                  ),
+                    );
+                  },
                 ),
               ),
               const SizedBox(height: 24),

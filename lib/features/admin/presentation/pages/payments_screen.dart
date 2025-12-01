@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:almaali_university_center/core/constants/app_colors.dart';
 import 'package:almaali_university_center/core/theme/app_theme.dart';
 import 'package:almaali_university_center/core/widgets/logo_widget.dart';
+import 'package:almaali_university_center/features/admin/data/models/payment_model.dart';
 import 'package:almaali_university_center/features/admin/presentation/pages/view_payment_screen.dart';
 import 'package:almaali_university_center/features/admin/presentation/pages/edit_payment_screen.dart';
+import 'package:almaali_university_center/logic/cubits/payments/payments_cubit.dart';
+import 'package:almaali_university_center/logic/cubits/payments/payments_state.dart';
 
 class PaymentsScreen extends StatefulWidget {
   const PaymentsScreen({super.key});
@@ -14,42 +18,17 @@ class PaymentsScreen extends StatefulWidget {
 
 class _PaymentsScreenState extends State<PaymentsScreen> {
   final TextEditingController _searchController = TextEditingController();
-  List<PaymentItem> _payments = [];
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
-    _loadPayments();
-  }
-
-  void _loadPayments() {
-    setState(() {
-      _payments = [
-        PaymentItem(
-          id: '1',
-          studentName: 'أحمد محمد علي',
-          nutrition: 30000,
-          housing: 15000,
-          total: 45000,
-          month: 'سبتمبر',
-        ),
-        PaymentItem(
-          id: '2',
-          studentName: 'محمد أحمد سعيد',
-          nutrition: 30000,
-          housing: 15000,
-          total: 45000,
-          month: 'أكتوبر',
-        ),
-        PaymentItem(
-          id: '3',
-          studentName: 'علي حسن محمد',
-          nutrition: 30000,
-          housing: 15000,
-          total: 45000,
-          month: 'نوفمبر',
-        ),
-      ];
+    // تحميل المدفوعات من API
+    context.read<PaymentsCubit>().loadPayments();
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text;
+      });
     });
   }
 
@@ -59,16 +38,16 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     super.dispose();
   }
 
-  void _deletePayment(String id) {
-    setState(() {
-      _payments.removeWhere((p) => p.id == id);
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('تم حذف الدفع'),
-        backgroundColor: Colors.green,
-      ),
-    );
+  void _deletePayment(int id) {
+    context.read<PaymentsCubit>().deletePayment(id);
+  }
+
+  List<Payment> _filterPayments(List<Payment> payments) {
+    if (_searchQuery.isEmpty) return payments;
+    return payments.where((p) => 
+      (p.studentName?.contains(_searchQuery) ?? false) ||
+      p.paymentMonth.contains(_searchQuery)
+    ).toList();
   }
 
   @override
@@ -130,35 +109,69 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
               ),
             ),
             const SizedBox(height: 16),
+            // Payments List from API
             Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: _payments.length,
-                itemBuilder: (context, index) {
-                  return PaymentListCard(
-                    payment: _payments[index],
-                    onView: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder:
-                              (_) =>
-                                  ViewPaymentScreen(payment: _payments[index]),
-                        ),
+              child: BlocConsumer<PaymentsCubit, PaymentsState>(
+                listener: (context, state) {
+                  if (state.successMessage != null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(state.successMessage!),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                    context.read<PaymentsCubit>().clearSuccess();
+                  }
+                  if (state.errorMessage != null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(state.errorMessage!),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                    context.read<PaymentsCubit>().clearError();
+                  }
+                },
+                builder: (context, state) {
+                  if (state.isLoading) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  
+                  final payments = _filterPayments(state.payments);
+                  
+                  if (payments.isEmpty) {
+                    return const Center(
+                      child: Text('لا توجد مدفوعات'),
+                    );
+                  }
+                  
+                  return ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: payments.length,
+                    itemBuilder: (context, index) {
+                      final payment = payments[index];
+                      return PaymentListCard(
+                        payment: payment,
+                        onView: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ViewPaymentScreen(payment: payment),
+                            ),
+                          );
+                        },
+                        onEdit: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => EditPaymentScreen(payment: payment),
+                            ),
+                          );
+                        },
+                        onDelete: () {
+                          _deletePayment(payment.id);
+                        },
                       );
-                    },
-                    onEdit: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder:
-                              (_) =>
-                                  EditPaymentScreen(payment: _payments[index]),
-                        ),
-                      );
-                    },
-                    onDelete: () {
-                      _deletePayment(_payments[index].id);
                     },
                   );
                 },
@@ -199,7 +212,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
 // Payment List Card Widget
 // ============================================================================
 class PaymentListCard extends StatelessWidget {
-  final PaymentItem payment;
+  final Payment payment;
   final VoidCallback onView;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
@@ -261,7 +274,7 @@ class PaymentListCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      'الطالب: ${payment.studentName}',
+                      'الطالب: ${payment.studentName ?? 'غير محدد'}',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -271,7 +284,7 @@ class PaymentListCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'الدفع : ${payment.total.toStringAsFixed(0)}',
+                      'التغذية: ${payment.foodPayment}',
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
@@ -281,7 +294,7 @@ class PaymentListCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'الإجمالي : ${payment.total.toStringAsFixed(0)}',
+                      'السكن: ${payment.housingPayment}',
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
@@ -291,7 +304,17 @@ class PaymentListCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'الشهر : ${payment.month}',
+                      'الإجمالي: ${payment.totalPayment}',
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textLight,
+                      ),
+                      textAlign: TextAlign.right,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'الشهر: ${payment.paymentMonth}',
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
@@ -350,25 +373,5 @@ class _ActionButton extends StatelessWidget {
   }
 }
 
-// ============================================================================
-// Payment Item Model
-// ============================================================================
-class PaymentItem {
-  final String id;
-  final String studentName;
-  final double nutrition;
-  final double housing;
-  final double total;
-  final double? remaining;
-  final String month;
-
-  PaymentItem({
-    required this.id,
-    required this.studentName,
-    required this.nutrition,
-    required this.housing,
-    required this.total,
-    this.remaining,
-    required this.month,
-  });
-}
+// PaymentItem تم استبداله بـ Payment model من:
+// lib/features/admin/data/models/payment_model.dart

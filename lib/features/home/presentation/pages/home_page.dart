@@ -4,6 +4,8 @@ import 'package:almaali_university_center/core/services/shared_pref.dart';
 import 'package:almaali_university_center/core/widgets/logo_widget.dart';
 import 'package:almaali_university_center/logic/cubits/auth/auth_cubit.dart';
 import 'package:almaali_university_center/logic/cubits/auth/auth_state.dart';
+import 'package:almaali_university_center/logic/cubits/home/home_cubit.dart';
+import 'package:almaali_university_center/logic/cubits/home/home_state.dart';
 import 'package:almaali_university_center/logic/cubits/students/students_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -18,6 +20,13 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 1; // Home is selected by default
+
+  @override
+  void initState() {
+    super.initState();
+    // تحميل بيانات الصفحة الرئيسية عند فتح الصفحة
+    context.read<HomeCubit>().loadHomeData();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -120,12 +129,37 @@ class _HomePageState extends State<HomePage> {
 
                     const SizedBox(height: 16),
 
-                    // News Cards
-                    _buildNewsCard('العنوان', 'التفاصيل'),
-                    const SizedBox(height: 16),
-                    _buildNewsCard('العنوان', 'التفاصيل'),
-                    const SizedBox(height: 16),
-                    _buildNewsCard('العنوان', 'التفاصيل'),
+                    // News Cards from API
+                    BlocBuilder<HomeCubit, HomeState>(
+                      builder: (context, state) {
+                        if (state.isLoading) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
+                        }
+                        if (state.errorMessage != null) {
+                          return Center(
+                            child: Text(
+                              state.errorMessage!,
+                              style: const TextStyle(color: Colors.red),
+                            ),
+                          );
+                        }
+                        if (state.news.isEmpty) {
+                          return const Center(
+                            child: Text('لا توجد أخبار حالياً'),
+                          );
+                        }
+                        return Column(
+                          children: state.news.map((newsItem) {
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: _buildNewsCard(newsItem.title, newsItem.details),
+                            );
+                          }).toList(),
+                        );
+                      },
+                    ),
                     const SizedBox(height: 80),
                   ],
                 ),
@@ -257,32 +291,42 @@ class _HomePageState extends State<HomePage> {
                 child: Icon(Icons.person, size: 50, color: Colors.white),
               ),
               const SizedBox(height: 16),
-              const Text(
-                'عبدالله سالم باوزير',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
+              BlocBuilder<HomeCubit, HomeState>(
+                builder: (context, state) {
+                  return Text(
+                    state.userName.isNotEmpty ? state.userName : 'مستخدم',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(
-                      color: Colors.white.withOpacity(0.5),
-                      width: 1,
+              BlocBuilder<HomeCubit, HomeState>(
+                builder: (context, state) {
+                  return Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
                     ),
-                  ),
-                ),
-                child: const Text(
-                  'تقنية معلومات',
-                  style: TextStyle(fontSize: 14, color: Colors.white),
-                ),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(
+                          color: Colors.white.withOpacity(0.5),
+                          width: 1,
+                        ),
+                      ),
+                    ),
+                    child: Text(
+                      state.userSpecialization.isNotEmpty 
+                          ? state.userSpecialization 
+                          : 'غير محدد',
+                      style: const TextStyle(fontSize: 14, color: Colors.white),
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 40),
 

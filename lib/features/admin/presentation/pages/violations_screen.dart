@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:almaali_university_center/core/constants/app_colors.dart';
 import 'package:almaali_university_center/core/theme/app_theme.dart';
 import 'package:almaali_university_center/core/widgets/logo_widget.dart';
+import 'package:almaali_university_center/features/admin/data/models/violation_model.dart';
 import 'package:almaali_university_center/features/admin/presentation/pages/view_violation_screen.dart';
 import 'package:almaali_university_center/features/admin/presentation/pages/edit_violation_screen.dart';
+import 'package:almaali_university_center/logic/cubits/violations/violations_cubit.dart';
+import 'package:almaali_university_center/logic/cubits/violations/violations_state.dart';
 
 class ViolationsScreen extends StatefulWidget {
   const ViolationsScreen({super.key});
@@ -14,34 +18,17 @@ class ViolationsScreen extends StatefulWidget {
 
 class _ViolationsScreenState extends State<ViolationsScreen> {
   final TextEditingController _searchController = TextEditingController();
-  List<ViolationItem> _violations = [];
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
-    _loadViolations();
-  }
-
-  void _loadViolations() {
-    // Sample data
-    setState(() {
-      _violations = [
-        ViolationItem(
-          id: '1',
-          studentName: 'أحمد محمد علي',
-          violation: 'التخلف عن صلاة الفجر',
-        ),
-        ViolationItem(
-          id: '2',
-          studentName: 'محمد أحمد سعيد',
-          violation: 'التأخر عن الحصة',
-        ),
-        ViolationItem(
-          id: '3',
-          studentName: 'علي حسن محمد',
-          violation: 'عدم ارتداء الزي الرسمي',
-        ),
-      ];
+    // تحميل المخالفات من API
+    context.read<ViolationsCubit>().loadViolations();
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text;
+      });
     });
   }
 
@@ -51,16 +38,16 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
     super.dispose();
   }
 
-  void _deleteViolation(String id) {
-    setState(() {
-      _violations.removeWhere((v) => v.id == id);
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('تم حذف المخالفة'),
-        backgroundColor: Colors.green,
-      ),
-    );
+  void _deleteViolation(int id) {
+    context.read<ViolationsCubit>().deleteViolation(id);
+  }
+
+  List<Violation> _filterViolations(List<Violation> violations) {
+    if (_searchQuery.isEmpty) return violations;
+    return violations.where((v) => 
+      (v.studentName?.contains(_searchQuery) ?? false) ||
+      v.title.contains(_searchQuery)
+    ).toList();
   }
 
   @override
@@ -134,38 +121,73 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
 
             const SizedBox(height: 16),
 
-            // Violations List
+            // Violations List from API
             Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: _violations.length,
-                itemBuilder: (context, index) {
-                  return ViolationListCard(
-                    violation: _violations[index],
-                    onView: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder:
-                              (_) => ViewViolationScreen(
-                                violation: _violations[index],
+              child: BlocConsumer<ViolationsCubit, ViolationsState>(
+                listener: (context, state) {
+                  if (state.successMessage != null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(state.successMessage!),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                    context.read<ViolationsCubit>().clearSuccess();
+                  }
+                  if (state.errorMessage != null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(state.errorMessage!),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                    context.read<ViolationsCubit>().clearError();
+                  }
+                },
+                builder: (context, state) {
+                  if (state.isLoading) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  
+                  final violations = _filterViolations(state.violations);
+                  
+                  if (violations.isEmpty) {
+                    return const Center(
+                      child: Text('لا توجد مخالفات'),
+                    );
+                  }
+                  
+                  return ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: violations.length,
+                    itemBuilder: (context, index) {
+                      final violation = violations[index];
+                      return ViolationListCard(
+                        violation: violation,
+                        onView: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ViewViolationScreen(
+                                violation: violation,
                               ),
-                        ),
-                      );
-                    },
-                    onEdit: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder:
-                              (_) => EditViolationScreen(
-                                violation: _violations[index],
+                            ),
+                          );
+                        },
+                        onEdit: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => EditViolationScreen(
+                                violation: violation,
                               ),
-                        ),
+                            ),
+                          );
+                        },
+                        onDelete: () {
+                          _deleteViolation(violation.id);
+                        },
                       );
-                    },
-                    onDelete: () {
-                      _deleteViolation(_violations[index].id);
                     },
                   );
                 },
@@ -208,7 +230,7 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
 // Violation List Card Widget
 // ============================================================================
 class ViolationListCard extends StatelessWidget {
-  final ViolationItem violation;
+  final Violation violation;
   final VoidCallback onView;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
@@ -274,7 +296,7 @@ class ViolationListCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      'الطالب: ${violation.studentName}',
+                      'الطالب: ${violation.studentName ?? 'غير محدد'}',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -284,10 +306,20 @@ class ViolationListCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'المخالفة: ${violation.violation}',
+                      'المخالفة: ${violation.title}',
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
+                        color: AppColors.textLight,
+                      ),
+                      textAlign: TextAlign.right,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'العقوبة: ${violation.discipline}',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
                         color: AppColors.textLight,
                       ),
                       textAlign: TextAlign.right,
@@ -343,21 +375,5 @@ class _ActionButton extends StatelessWidget {
   }
 }
 
-// ============================================================================
-// Violation Item Model
-// ============================================================================
-class ViolationItem {
-  final String id;
-  final String studentName;
-  final String violation;
-  final String? penalty;
-  final String? notes;
-
-  ViolationItem({
-    required this.id,
-    required this.studentName,
-    required this.violation,
-    this.penalty,
-    this.notes,
-  });
-}
+// ViolationItem تم استبداله بـ Violation model من:
+// lib/features/admin/data/models/violation_model.dart

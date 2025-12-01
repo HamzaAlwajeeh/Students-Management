@@ -21,7 +21,9 @@ class BlocProviders {
     // Onboarding Feature
     BlocProvider<OnboardingCubit>(create: (context) => OnboardingCubit()),
     // Home Feature
-    BlocProvider<HomeCubit>(create: (context) => HomeCubit()),
+    BlocProvider<HomeCubit>(
+      create: (context) => HomeCubit(apiService: ApiService()),
+    ),
     // Students Feature
     BlocProvider<StudentsCubit>(
       create: (context) => StudentsCubit(apiServices: ApiService()),

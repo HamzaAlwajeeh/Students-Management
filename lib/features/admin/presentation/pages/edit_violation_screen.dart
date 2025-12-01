@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:almaali_university_center/core/constants/app_colors.dart';
 import 'package:almaali_university_center/core/theme/app_theme.dart';
 import 'package:almaali_university_center/core/widgets/logo_widget.dart';
+import 'package:almaali_university_center/features/admin/data/models/violation_model.dart';
 import 'package:almaali_university_center/features/admin/presentation/widgets/violation_form_card.dart';
 import 'package:almaali_university_center/features/admin/presentation/widgets/violation_input_field.dart';
-import 'package:almaali_university_center/features/admin/presentation/pages/violations_screen.dart';
+import 'package:almaali_university_center/logic/cubits/violations/violations_cubit.dart';
 
 class EditViolationScreen extends StatefulWidget {
-  final ViolationItem violation;
+  final Violation violation;
 
   const EditViolationScreen({super.key, required this.violation});
 
@@ -19,22 +21,19 @@ class _EditViolationScreenState extends State<EditViolationScreen> {
   late TextEditingController _studentController;
   late TextEditingController _violationController;
   late TextEditingController _penaltyController;
-  late TextEditingController _notesController;
+  bool _isSubmitting = false;
 
   @override
   void initState() {
     super.initState();
     _studentController = TextEditingController(
-      text: widget.violation.studentName,
+      text: widget.violation.studentName ?? '',
     );
     _violationController = TextEditingController(
-      text: widget.violation.violation,
+      text: widget.violation.title,
     );
     _penaltyController = TextEditingController(
-      text: widget.violation.penalty ?? '',
-    );
-    _notesController = TextEditingController(
-      text: widget.violation.notes ?? '',
+      text: widget.violation.discipline,
     );
   }
 
@@ -43,13 +42,11 @@ class _EditViolationScreenState extends State<EditViolationScreen> {
     _studentController.dispose();
     _violationController.dispose();
     _penaltyController.dispose();
-    _notesController.dispose();
     super.dispose();
   }
 
-  void _saveChanges() {
-    if (_studentController.text.isEmpty ||
-        _violationController.text.isEmpty ||
+  Future<void> _saveChanges() async {
+    if (_violationController.text.isEmpty ||
         _penaltyController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -60,15 +57,19 @@ class _EditViolationScreenState extends State<EditViolationScreen> {
       return;
     }
 
-    // Save changes logic here
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('تم حفظ التعديلات بنجاح'),
-        backgroundColor: Colors.green,
-      ),
+    setState(() => _isSubmitting = true);
+
+    final success = await context.read<ViolationsCubit>().updateViolation(
+      id: widget.violation.id,
+      title: _violationController.text,
+      discipline: _penaltyController.text,
     );
 
-    Navigator.pop(context);
+    setState(() => _isSubmitting = false);
+
+    if (success && mounted) {
+      Navigator.pop(context);
+    }
   }
 
   @override
@@ -106,6 +107,7 @@ class _EditViolationScreenState extends State<EditViolationScreen> {
                   ViolationInputField(
                     label: 'الطالـــب',
                     controller: _studentController,
+                    readOnly: true,
                   ),
                   const SizedBox(height: 24),
                   ViolationInputField(
@@ -118,16 +120,10 @@ class _EditViolationScreenState extends State<EditViolationScreen> {
                     controller: _penaltyController,
                   ),
                   const SizedBox(height: 24),
-                  ViolationInputField(
-                    label: 'ملاحظـــات',
-                    controller: _notesController,
-                    maxLines: 5,
-                  ),
-                  const SizedBox(height: 24),
                   // Save Button inside card
                   Center(
                     child: ElevatedButton(
-                      onPressed: _saveChanges,
+                      onPressed: _isSubmitting ? null : _saveChanges,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.textLight,
                         foregroundColor: AppColors.primaryBlue,
@@ -139,13 +135,19 @@ class _EditViolationScreenState extends State<EditViolationScreen> {
                           borderRadius: BorderRadius.circular(25),
                         ),
                       ),
-                      child: const Text(
-                        'حفظ التعديلات',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      child: _isSubmitting
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text(
+                              'حفظ التعديلات',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                     ),
                   ),
                 ],

@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:almaali_university_center/core/constants/app_colors.dart';
 import 'package:almaali_university_center/core/theme/app_theme.dart';
 import 'package:almaali_university_center/core/widgets/logo_widget.dart';
+import 'package:almaali_university_center/features/admin/data/models/payment_model.dart';
 import 'package:almaali_university_center/features/admin/presentation/widgets/violation_form_card.dart';
 import 'package:almaali_university_center/features/admin/presentation/widgets/violation_input_field.dart';
-import 'package:almaali_university_center/features/admin/presentation/pages/payments_screen.dart';
 
 class ViewPaymentScreen extends StatelessWidget {
-  final PaymentItem payment;
+  final Payment payment;
 
   const ViewPaymentScreen({super.key, required this.payment});
 
@@ -37,37 +37,37 @@ class ViewPaymentScreen extends StatelessWidget {
                 children: [
                   ViolationInputField(
                     label: 'الطالـــب',
-                    initialValue: payment.studentName,
+                    initialValue: payment.studentName ?? 'غير محدد',
                     readOnly: true,
                   ),
                   const SizedBox(height: 20),
                   ViolationInputField(
                     label: 'رسوم التغذية',
-                    initialValue: payment.nutrition.toStringAsFixed(0),
+                    initialValue: payment.foodPayment.toString(),
                     readOnly: true,
                   ),
                   const SizedBox(height: 20),
                   ViolationInputField(
                     label: 'رسوم التسكين',
-                    initialValue: payment.housing.toStringAsFixed(0),
+                    initialValue: payment.housingPayment.toString(),
                     readOnly: true,
                   ),
                   const SizedBox(height: 20),
                   ViolationInputField(
                     label: 'الإجمالي',
-                    initialValue: payment.total.toStringAsFixed(0),
-                    readOnly: true,
-                  ),
-                  const SizedBox(height: 20),
-                  ViolationInputField(
-                    label: 'المتبقي',
-                    initialValue: payment.remaining?.toStringAsFixed(0) ?? '0',
+                    initialValue: payment.totalPayment.toString(),
                     readOnly: true,
                   ),
                   const SizedBox(height: 20),
                   ViolationInputField(
                     label: 'الشهر',
-                    initialValue: payment.month,
+                    initialValue: payment.paymentMonth,
+                    readOnly: true,
+                  ),
+                  const SizedBox(height: 20),
+                  ViolationInputField(
+                    label: 'تاريخ الإنشاء',
+                    initialValue: payment.createdAt?.toString().split(' ')[0] ?? 'غير محدد',
                     readOnly: true,
                   ),
                 ],
