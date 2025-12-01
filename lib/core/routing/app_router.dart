@@ -1,0 +1,235 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:almaali_university_center/core/routing/app_routes.dart';
+import 'package:almaali_university_center/features/splash/presentation/pages/splash_page.dart';
+import 'package:almaali_university_center/features/onboarding/presentation/pages/onboarding_page.dart';
+import 'package:almaali_university_center/features/auth/presentation/pages/sign_in_page.dart';
+import 'package:almaali_university_center/features/auth/presentation/pages/register_page.dart';
+import 'package:almaali_university_center/features/home/presentation/pages/home_page.dart';
+import 'package:almaali_university_center/features/registration/presentation/pages/registration_page.dart';
+import 'package:almaali_university_center/features/registration/presentation/pages/student_accepted_page.dart';
+import 'package:almaali_university_center/features/registration/presentation/pages/student_rejected_page.dart';
+import 'package:almaali_university_center/features/students/presentation/pages/students_page.dart';
+import 'package:almaali_university_center/features/complaints/presentation/pages/complaints_page.dart';
+import 'package:almaali_university_center/features/commitments/presentation/pages/commitments_page.dart';
+import 'package:almaali_university_center/features/about/presentation/pages/about_page.dart';
+
+/// مفتاح التنقل العام
+final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
+
+/// إعدادات التوجيه باستخدام GoRouter
+class AppRouter {
+  static final GoRouter router = GoRouter(
+    navigatorKey: rootNavigatorKey,
+    initialLocation: AppRoutes.splash,
+    debugLogDiagnostics: true,
+    routes: [
+      // ========== Auth Routes ==========
+      GoRoute(
+        path: AppRoutes.splash,
+        name: 'splash',
+        pageBuilder:
+            (context, state) => _buildPageWithTransition(
+              context,
+              state,
+              const SplashPage(),
+              TransitionType.fade,
+            ),
+      ),
+      GoRoute(
+        path: AppRoutes.onboarding,
+        name: 'onboarding',
+        pageBuilder:
+            (context, state) => _buildPageWithTransition(
+              context,
+              state,
+              const OnboardingPage(),
+              TransitionType.slideFromRight,
+            ),
+      ),
+      GoRoute(
+        path: AppRoutes.signIn,
+        name: 'signIn',
+        pageBuilder:
+            (context, state) => _buildPageWithTransition(
+              context,
+              state,
+              const SignInPage(),
+              TransitionType.slideFromRight,
+            ),
+      ),
+      GoRoute(
+        path: AppRoutes.signUp,
+        name: 'signUp',
+        pageBuilder:
+            (context, state) => _buildPageWithTransition(
+              context,
+              state,
+              const RegisterPage(),
+              TransitionType.slideFromRight,
+            ),
+      ),
+
+      // ========== Enrollment Routes ==========
+      GoRoute(
+        path: AppRoutes.registration,
+        name: 'registration',
+        pageBuilder:
+            (context, state) => _buildPageWithTransition(
+              context,
+              state,
+              const RegistrationPage(),
+              TransitionType.slideFromRight,
+            ),
+      ),
+      GoRoute(
+        path: AppRoutes.studentAccepted,
+        name: 'studentAccepted',
+        pageBuilder:
+            (context, state) => _buildPageWithTransition(
+              context,
+              state,
+              const StudentAcceptedPage(),
+              TransitionType.fade,
+            ),
+      ),
+      GoRoute(
+        path: AppRoutes.studentRejected,
+        name: 'studentRejected',
+        pageBuilder:
+            (context, state) => _buildPageWithTransition(
+              context,
+              state,
+              const StudentRejectedPage(),
+              TransitionType.fade,
+            ),
+      ),
+
+      // ========== Student Routes ==========
+      GoRoute(
+        path: AppRoutes.home,
+        name: 'home',
+        pageBuilder:
+            (context, state) => _buildPageWithTransition(
+              context,
+              state,
+              const HomePage(),
+              TransitionType.fade,
+            ),
+      ),
+      GoRoute(
+        path: AppRoutes.students,
+        name: 'students',
+        pageBuilder:
+            (context, state) => _buildPageWithTransition(
+              context,
+              state,
+              const StudentsPage(),
+              TransitionType.slideFromRight,
+            ),
+      ),
+      GoRoute(
+        path: AppRoutes.complaints,
+        name: 'complaints',
+        pageBuilder:
+            (context, state) => _buildPageWithTransition(
+              context,
+              state,
+              const ComplaintsPage(),
+              TransitionType.slideFromRight,
+            ),
+      ),
+      GoRoute(
+        path: AppRoutes.commitments,
+        name: 'commitments',
+        pageBuilder:
+            (context, state) => _buildPageWithTransition(
+              context,
+              state,
+              const CommitmentsPage(),
+              TransitionType.slideFromRight,
+            ),
+      ),
+      GoRoute(
+        path: AppRoutes.about,
+        name: 'about',
+        pageBuilder:
+            (context, state) => _buildPageWithTransition(
+              context,
+              state,
+              const AboutPage(),
+              TransitionType.slideFromRight,
+            ),
+      ),
+    ],
+    errorPageBuilder:
+        (context, state) => MaterialPage(
+          key: state.pageKey,
+          child: Scaffold(
+            body: Center(child: Text('الصفحة غير موجودة: ${state.uri}')),
+          ),
+        ),
+  );
+
+  /// بناء صفحة مع انتقال مخصص
+  static CustomTransitionPage _buildPageWithTransition(
+    BuildContext context,
+    GoRouterState state,
+    Widget child,
+    TransitionType transitionType,
+  ) {
+    return CustomTransitionPage(
+      key: state.pageKey,
+      child: child,
+      transitionDuration: const Duration(milliseconds: 300),
+      reverseTransitionDuration: const Duration(milliseconds: 300),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        switch (transitionType) {
+          case TransitionType.fade:
+            return FadeTransition(opacity: animation, child: child);
+          case TransitionType.slideFromRight:
+            return SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(1.0, 0.0),
+                end: Offset.zero,
+              ).animate(
+                CurvedAnimation(parent: animation, curve: Curves.easeInOut),
+              ),
+              child: child,
+            );
+          case TransitionType.slideFromLeft:
+            return SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(-1.0, 0.0),
+                end: Offset.zero,
+              ).animate(
+                CurvedAnimation(parent: animation, curve: Curves.easeInOut),
+              ),
+              child: child,
+            );
+          case TransitionType.slideFromBottom:
+            return SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0.0, 1.0),
+                end: Offset.zero,
+              ).animate(
+                CurvedAnimation(parent: animation, curve: Curves.easeOut),
+              ),
+              child: child,
+            );
+          case TransitionType.scale:
+            return ScaleTransition(scale: animation, child: child);
+        }
+      },
+    );
+  }
+}
+
+/// أنواع الانتقالات
+enum TransitionType {
+  fade,
+  slideFromRight,
+  slideFromLeft,
+  slideFromBottom,
+  scale,
+}
