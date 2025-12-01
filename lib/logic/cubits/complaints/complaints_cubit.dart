@@ -1,33 +1,39 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:almaali_university_center/core/services/api_services.dart';
+import 'package:almaali_university_center/core/services/shared_pref.dart';
+import 'package:almaali_university_center/core/services/role_service.dart';
+import 'package:almaali_university_center/features/complaints/data/models/complaint_model.dart' as model;
 import 'package:almaali_university_center/logic/cubits/complaints/complaints_state.dart';
 
 /// Cubit للشكاوى - يدير قائمة الشكاوى وإضافة/حذف
 class ComplaintsCubit extends Cubit<ComplaintsState> {
-  ComplaintsCubit() : super(const ComplaintsState());
+  final ApiService apiService;
+
+  ComplaintsCubit({ApiService? apiService}) 
+      : apiService = apiService ?? ApiService(),
+        super(const ComplaintsState());
 
   /// تحميل قائمة الشكاوى
   Future<void> loadComplaints() async {
     try {
       emit(state.copyWith(isLoading: true, clearError: true));
 
-      // TODO: استبدال بـ Repository call
-      await Future.delayed(const Duration(seconds: 1));
+      final token = Prefs.getString('token');
+      final data = await apiService.get(
+        endPoint: 'complaints',
+        body: null,
+        token: token,
+      );
 
-      // بيانات تجريبية
-      final complaints = [
-        Complaint(
-          id: '1',
-          title: 'الشكوى',
-          description: 'إنقطاع الانترنت عن الطابق الرابع',
-          createdAt: DateTime.now(),
-        ),
-        Complaint(
-          id: '2',
-          title: 'الشكوى',
-          description: 'تعطل المكيف في القاعة الرئيسية',
-          createdAt: DateTime.now().subtract(const Duration(days: 1)),
-        ),
-      ];
+      final complaints = (data as List).map<Complaint>((item) {
+        final apiComplaint = model.Complaint.fromJson(item);
+        return Complaint(
+          id: apiComplaint.id.toString(),
+          title: 'شكوى',
+          description: apiComplaint.description,
+          createdAt: apiComplaint.createdAt ?? DateTime.now(),
+        );
+      }).toList();
 
       emit(state.copyWith(isLoading: false, complaints: complaints));
     } catch (e) {
@@ -38,27 +44,33 @@ class ComplaintsCubit extends Cubit<ComplaintsState> {
   }
 
   /// إضافة شكوى جديدة
-  Future<void> addComplaint(String title, String description) async {
+  Future<bool> addComplaint(String title, String description) async {
     try {
       emit(state.copyWith(isSubmitting: true, clearError: true));
 
-      // TODO: استبدال بـ Repository call
-      await Future.delayed(const Duration(seconds: 1));
+      final token = Prefs.getString('token');
+      final userId = await RoleService.getUserId();
+      final userName = await RoleService.getUserName();
 
-      final newComplaint = Complaint(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        title: title,
-        description: description,
-        createdAt: DateTime.now(),
+      await apiService.post(
+        endPoint: 'complaints',
+        body: {
+          'student_id': int.tryParse(userId ?? '0') ?? 0,
+          'student_name': userName ?? '',
+          'description': description,
+        },
+        token: token,
       );
 
       emit(
         state.copyWith(
           isSubmitting: false,
-          complaints: [...state.complaints, newComplaint],
           successMessage: 'تم إضافة الشكوى بنجاح',
         ),
       );
+
+      await loadComplaints();
+      return true;
     } catch (e) {
       emit(
         state.copyWith(
@@ -66,13 +78,19 @@ class ComplaintsCubit extends Cubit<ComplaintsState> {
           errorMessage: 'فشل إضافة الشكوى: $e',
         ),
       );
+      return false;
     }
   }
 
   /// حذف شكوى
-  Future<void> removeComplaint(String id) async {
+  Future<bool> removeComplaint(String id) async {
     try {
-      // TODO: استبدال بـ Repository call
+      final token = Prefs.getString('token');
+      await apiService.delete(
+        endPoint: 'complaints/$id',
+        token: token,
+      );
+
       final updatedComplaints =
           state.complaints.where((complaint) => complaint.id != id).toList();
 
@@ -82,8 +100,10 @@ class ComplaintsCubit extends Cubit<ComplaintsState> {
           successMessage: 'تم حذف الشكوى',
         ),
       );
+      return true;
     } catch (e) {
       emit(state.copyWith(errorMessage: 'فشل حذف الشكوى: $e'));
+      return false;
     }
   }
 

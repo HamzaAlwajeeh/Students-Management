@@ -1,4 +1,5 @@
 import 'package:almaali_university_center/core/services/api_services.dart';
+import 'package:almaali_university_center/core/services/shared_pref.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../features/students/data/model/student_model.dart';
@@ -14,21 +15,18 @@ class StudentsCubit extends Cubit<StudentsState> {
     try {
       emit(state.copyWith(isLoading: true, clearError: true));
 
+      // الحصول على Token وإرساله مع الطلب
+      final token = Prefs.getString('token');
+
       final data = await apiServices.get(
         endPoint: 'students',
         body: null,
-        token: null,
+        token: token,
       );
 
-      final students =
-          data.map<Student>((item) {
-            return Student(
-              id: item['id'],
-              name: item['student_name'],
-              specialization: item['student_major'],
-              college: item['student_university'],
-            );
-          }).toList();
+      final students = (data as List)
+          .map<Student>((item) => Student.fromJson(item))
+          .toList();
 
       emit(state.copyWith(isLoading: false, students: students));
     } catch (e) {

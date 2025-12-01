@@ -3,8 +3,11 @@ import 'package:almaali_university_center/logic/cubits/auth/auth_cubit.dart';
 import 'package:almaali_university_center/logic/cubits/commitments/commitments_cubit.dart';
 import 'package:almaali_university_center/logic/cubits/complaints/complaints_cubit.dart';
 import 'package:almaali_university_center/logic/cubits/home/home_cubit.dart';
+import 'package:almaali_university_center/logic/cubits/news/news_cubit.dart';
 import 'package:almaali_university_center/logic/cubits/onboarding/onboarding_cubit.dart';
+import 'package:almaali_university_center/logic/cubits/payments/payments_cubit.dart';
 import 'package:almaali_university_center/logic/cubits/students/students_cubit.dart';
+import 'package:almaali_university_center/logic/cubits/violations/violations_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -24,9 +27,25 @@ class BlocProviders {
       create: (context) => StudentsCubit(apiServices: ApiService()),
     ),
     // Complaints Feature
-    BlocProvider<ComplaintsCubit>(create: (context) => ComplaintsCubit()),
+    BlocProvider<ComplaintsCubit>(
+      create: (context) => ComplaintsCubit(apiService: ApiService()),
+    ),
     // Commitments Feature
-    BlocProvider<CommitmentsCubit>(create: (context) => CommitmentsCubit()),
+    BlocProvider<CommitmentsCubit>(
+      create: (context) => CommitmentsCubit(apiService: ApiService()),
+    ),
+    // Violations Feature
+    BlocProvider<ViolationsCubit>(
+      create: (context) => ViolationsCubit(apiService: ApiService()),
+    ),
+    // Payments Feature
+    BlocProvider<PaymentsCubit>(
+      create: (context) => PaymentsCubit(apiService: ApiService()),
+    ),
+    // News Feature
+    BlocProvider<NewsCubit>(
+      create: (context) => NewsCubit(apiService: ApiService()),
+    ),
   ];
 
   /// Widget يغلف التطبيق بجميع الـ Providers

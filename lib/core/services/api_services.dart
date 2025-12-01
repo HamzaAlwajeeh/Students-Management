@@ -2,11 +2,26 @@ import 'dart:developer';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:almaali_university_center/core/services/auth_interceptor.dart';
+import 'package:almaali_university_center/core/services/shared_pref.dart';
 
 class ApiService {
-  final _baseUrl = 'http://192.168.64.89:8000/api';
+  static const String baseUrl = 'http://192.168.64.89:8000/api';
+  final String _baseUrl = baseUrl;
 
-  final Dio dio = Dio();
+  late final Dio dio;
+
+  ApiService() {
+    dio = Dio(BaseOptions(
+      baseUrl: _baseUrl,
+      connectTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(seconds: 30),
+    ));
+    dio.interceptors.add(AuthInterceptor());
+  }
+
+  /// الحصول على Token من SharedPreferences
+  String? get _token => Prefs.getString('token');
 
   Future<dynamic> get({
     required String endPoint,

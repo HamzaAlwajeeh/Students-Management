@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:almaali_university_center/core/routing/app_routes.dart';
+import 'package:almaali_university_center/core/routing/route_guard.dart';
+import 'package:almaali_university_center/core/constants/user_role.dart';
+import 'package:almaali_university_center/core/services/role_service.dart';
 import 'package:almaali_university_center/features/splash/presentation/pages/splash_page.dart';
 import 'package:almaali_university_center/features/onboarding/presentation/pages/onboarding_page.dart';
 import 'package:almaali_university_center/features/auth/presentation/pages/sign_in_page.dart';
@@ -23,6 +26,51 @@ class AppRouter {
     navigatorKey: rootNavigatorKey,
     initialLocation: AppRoutes.splash,
     debugLogDiagnostics: true,
+    
+    /// حارس المسارات - يتحقق من الصلاحيات قبل السماح بالوصول
+    redirect: (context, state) async {
+      final currentPath = state.matchedLocation;
+      
+      // السماح بالوصول لصفحة البداية دائماً
+      if (currentPath == AppRoutes.splash) {
+        return null;
+      }
+      
+      // الحصول على دور المستخدم الحالي
+      final role = await RoleService.getRole();
+      final isAuthenticated = role != UserRole.unauthenticated;
+      
+      // المسارات العامة المسموحة للجميع
+      final publicRoutes = [
+        AppRoutes.splash,
+        AppRoutes.onboarding,
+        AppRoutes.signIn,
+        AppRoutes.signUp,
+      ];
+      
+      // إذا كان المسار عام، السماح بالوصول
+      if (publicRoutes.contains(currentPath)) {
+        // إذا كان المستخدم مسجل دخول ويحاول الوصول لصفحة تسجيل الدخول
+        if (isAuthenticated && (currentPath == AppRoutes.signIn || currentPath == AppRoutes.signUp)) {
+          return RouteGuard.getDefaultRoute(role);
+        }
+        return null;
+      }
+      
+      // إذا لم يكن مسجل دخول، إعادة توجيه لصفحة تسجيل الدخول
+      if (!isAuthenticated) {
+        return AppRoutes.signIn;
+      }
+      
+      // التحقق من صلاحية الوصول للمسار
+      if (!RouteGuard.hasPermission(role, currentPath)) {
+        // إعادة توجيه للصفحة الافتراضية حسب الدور
+        return RouteGuard.getDefaultRoute(role);
+      }
+      
+      return null;
+    },
+    
     routes: [
       // ========== Auth Routes ==========
       GoRoute(
