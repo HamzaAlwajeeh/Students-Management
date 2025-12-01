@@ -1,10 +1,13 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:almaali_university_center/core/constants/app_colors.dart';
 import 'package:almaali_university_center/core/theme/app_theme.dart';
 import 'package:almaali_university_center/core/widgets/admin_app_bar.dart';
 import 'package:almaali_university_center/core/widgets/logo_widget.dart';
 import 'package:almaali_university_center/features/admin/presentation/widgets/violation_form_card.dart';
 import 'package:almaali_university_center/features/admin/presentation/widgets/violation_input_field.dart';
-import 'package:flutter/material.dart';
+import 'package:almaali_university_center/logic/cubits/commitments/commitments_cubit.dart';
+import 'package:almaali_university_center/logic/cubits/commitments/commitments_state.dart';
 
 class AddCommitmentScreen extends StatefulWidget {
   const AddCommitmentScreen({super.key});
@@ -24,7 +27,7 @@ class _AddCommitmentScreenState extends State<AddCommitmentScreen> {
     super.dispose();
   }
 
-  void _addCommitment() {
+  Future<void> _addCommitment() async {
     if (_titleController.text.isEmpty || _descriptionController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -35,17 +38,15 @@ class _AddCommitmentScreenState extends State<AddCommitmentScreen> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('تم إضافة الإلتزام بنجاح'),
-        backgroundColor: Colors.green,
-      ),
+    final success = await context.read<CommitmentsCubit>().addCommitment(
+      title: _titleController.text,
+      description: _descriptionController.text,
     );
 
-    setState(() {
+    if (success && mounted) {
       _titleController.clear();
       _descriptionController.clear();
-    });
+    }
   }
 
   @override
@@ -86,29 +87,64 @@ class _AddCommitmentScreenState extends State<AddCommitmentScreen> {
                 ],
               ),
               const SizedBox(height: 24),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _addCommitment,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryGold,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+              
+              // زر الإضافة مع حالة التحميل
+              BlocConsumer<CommitmentsCubit, CommitmentsState>(
+                listener: (context, state) {
+                  if (state.successMessage != null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(state.successMessage!),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                    context.read<CommitmentsCubit>().clearSuccess();
+                  }
+                  if (state.errorMessage != null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(state.errorMessage!),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                    context.read<CommitmentsCubit>().clearError();
+                  }
+                },
+                builder: (context, state) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: state.isSubmitting ? null : _addCommitment,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryGold,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: state.isSubmitting
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  color: AppColors.textLight,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                'إضافة',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textLight,
+                                ),
+                              ),
                       ),
                     ),
-                    child: const Text(
-                      'اضافة',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textLight,
-                      ),
-                    ),
-                  ),
-                ),
+                  );
+                },
               ),
               const SizedBox(height: 24),
             ],

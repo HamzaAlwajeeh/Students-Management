@@ -17,7 +17,8 @@ class ApiService {
       connectTimeout: const Duration(seconds: 30),
       receiveTimeout: const Duration(seconds: 30),
     ));
-    dio.interceptors.add(AuthInterceptor());
+    // إضافة AuthInterceptor مع تمرير Dio للـ Token Refresh
+    dio.interceptors.add(AuthInterceptor(dio));
   }
 
   /// الحصول على Token من SharedPreferences

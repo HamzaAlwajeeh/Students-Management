@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:almaali_university_center/core/constants/app_colors.dart';
 import 'package:almaali_university_center/core/theme/app_theme.dart';
 import 'package:almaali_university_center/core/widgets/logo_widget.dart';
 import 'package:almaali_university_center/core/widgets/admin_app_bar.dart';
+import 'package:almaali_university_center/logic/cubits/commitments/commitments_cubit.dart';
+import 'package:almaali_university_center/logic/cubits/commitments/commitments_state.dart';
 
 class CommitmentsScreen extends StatefulWidget {
   const CommitmentsScreen({super.key});
@@ -12,52 +15,14 @@ class CommitmentsScreen extends StatefulWidget {
 }
 
 class _CommitmentsScreenState extends State<CommitmentsScreen> {
-  List<CommitmentItem> _commitments = [];
-
   @override
   void initState() {
     super.initState();
-    _loadCommitments();
+    context.read<CommitmentsCubit>().loadCommitments();
   }
 
-  void _loadCommitments() {
-    setState(() {
-      _commitments = [
-        CommitmentItem(
-          id: '1',
-          title: 'حلقات الفجر',
-          description:
-              'يجب على جميع الطلاب الإلتزام بحلقات الفجر لمدة ساعتان بعد الفجر وسيتم التحضير فيها',
-          date: '21/10/2025',
-        ),
-        CommitmentItem(
-          id: '2',
-          title: 'حلقات الفجر',
-          description:
-              'يجب على جميع الطلاب الإلتزام بحلقات الفجر لمدة ساعتان بعد الفجر وسيتم التحضير فيها',
-          date: '21/10/2025',
-        ),
-        CommitmentItem(
-          id: '3',
-          title: 'حلقات الفجر',
-          description:
-              'يجب على جميع الطلاب الإلتزام بحلقات الفجر لمدة ساعتان بعد الفجر وسيتم التحضير فيها',
-          date: '21/10/2025',
-        ),
-      ];
-    });
-  }
-
-  void _deleteCommitment(String id) {
-    setState(() {
-      _commitments.removeWhere((c) => c.id == id);
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('تم حذف الإلتزام'),
-        backgroundColor: Colors.green,
-      ),
-    );
+  void _deleteCommitment(int id) {
+    context.read<CommitmentsCubit>().deleteCommitment(id);
   }
 
   @override
@@ -74,7 +39,7 @@ class _CommitmentsScreenState extends State<CommitmentsScreen> {
             ),
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 16),
-              child: Text('الإرتزامات', style: AppTheme.adminPageTitle),
+              child: Text('الإلتزامات', style: AppTheme.adminPageTitle),
             ),
             Container(
               height: 2,
@@ -83,15 +48,54 @@ class _CommitmentsScreenState extends State<CommitmentsScreen> {
             ),
             const SizedBox(height: 24),
             Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: _commitments.length,
-                itemBuilder: (context, index) {
-                  return CommitmentCard(
-                    commitment: _commitments[index],
-                    onDelete: () {
-                      _deleteCommitment(_commitments[index].id);
-                    },
+              child: BlocConsumer<CommitmentsCubit, CommitmentsState>(
+                listener: (context, state) {
+                  if (state.successMessage != null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(state.successMessage!),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                    context.read<CommitmentsCubit>().clearSuccess();
+                  }
+                  if (state.errorMessage != null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(state.errorMessage!),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                    context.read<CommitmentsCubit>().clearError();
+                  }
+                },
+                builder: (context, state) {
+                  if (state.isLoading) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  
+                  if (state.commitments.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        'لا توجد التزامات',
+                        style: TextStyle(fontSize: 18, color: Colors.grey),
+                      ),
+                    );
+                  }
+                  
+                  return RefreshIndicator(
+                    onRefresh: () => context.read<CommitmentsCubit>().refresh(),
+                    child: ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: state.commitments.length,
+                      itemBuilder: (context, index) {
+                        final commitment = state.commitments[index];
+                        return CommitmentCard(
+                          commitment: commitment,
+                          onDelete: () => _deleteCommitment(commitment.id),
+                        );
+                      },
+                    ),
                   );
                 },
               ),
@@ -107,7 +111,7 @@ class _CommitmentsScreenState extends State<CommitmentsScreen> {
 // Commitment Card Widget
 // ============================================================================
 class CommitmentCard extends StatelessWidget {
-  final CommitmentItem commitment;
+  final Commitment commitment;
   final VoidCallback onDelete;
 
   const CommitmentCard({
@@ -144,14 +148,16 @@ class CommitmentCard extends StatelessWidget {
                   ),
                   onPressed: onDelete,
                 ),
-                Text(
-                  commitment.title,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textLight,
+                Expanded(
+                  child: Text(
+                    commitment.title,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textLight,
+                    ),
+                    textAlign: TextAlign.right,
                   ),
-                  textAlign: TextAlign.right,
                 ),
               ],
             ),
@@ -166,36 +172,21 @@ class CommitmentCard extends StatelessWidget {
               ),
               textAlign: TextAlign.right,
             ),
-            const SizedBox(height: 12),
-            Text(
-              commitment.date,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textLight,
+            if (commitment.date != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                commitment.date!,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textLight,
+                ),
+                textAlign: TextAlign.right,
               ),
-              textAlign: TextAlign.right,
-            ),
+            ],
           ],
         ),
       ),
     );
   }
-}
-
-// ============================================================================
-// Commitment Item Model
-// ============================================================================
-class CommitmentItem {
-  final String id;
-  final String title;
-  final String description;
-  final String date;
-
-  CommitmentItem({
-    required this.id,
-    required this.title,
-    required this.description,
-    required this.date,
-  });
 }

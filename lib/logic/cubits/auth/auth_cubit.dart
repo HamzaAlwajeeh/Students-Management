@@ -80,19 +80,15 @@ class AuthCubit extends Cubit<AuthState> {
     try {
       emit(state.copyWith(isLoading: true, errorMessage: null));
 
-      // محاكاة استدعاء API
-      await Future.delayed(const Duration(seconds: 2));
-
-      var data = await apiService.post(
+      await apiService.post(
         endPoint: 'signup',
         body: {
           'user_email': email,
           'user_password': password,
-          "user_password_confirmation": confirmPassword,
+          'user_password_confirmation': confirmPassword,
         },
         token: null,
       );
-      // List<Operation> operations = [];
 
       emit(
         state.copyWith(
