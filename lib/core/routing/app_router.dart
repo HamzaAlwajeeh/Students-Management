@@ -210,13 +210,13 @@ class AppRouter {
             ),
       ),
     ],
-    errorPageBuilder:
-        (context, state) => MaterialPage(
-          key: state.pageKey,
-          child: Scaffold(
-            body: Center(child: Text('الصفحة غير موجودة: ${state.uri}')),
-          ),
-        ),
+    // errorPageBuilder:
+    //     (context, state) => MaterialPage(
+    //       key: state.pageKey,
+    //       child: Scaffold(
+    //         body: Center(child: Text('الصفحة غير موجودة: ${state.uri}')),
+    //       ),
+    //     ),
   );
 
   /// بناء صفحة مع انتقال مخصص
