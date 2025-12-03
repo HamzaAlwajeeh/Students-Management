@@ -1,9 +1,9 @@
 import 'dart:developer';
 
-import 'package:dio/dio.dart';
-import 'package:flutter/material.dart';
 import 'package:almaali_university_center/core/services/auth_interceptor.dart';
 import 'package:almaali_university_center/core/services/shared_pref.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 
 class ApiService {
   static const String baseUrl = 'http://192.168.64.89:8000/api';
@@ -12,11 +12,13 @@ class ApiService {
   late final Dio dio;
 
   ApiService() {
-    dio = Dio(BaseOptions(
-      baseUrl: _baseUrl,
-      connectTimeout: const Duration(seconds: 30),
-      receiveTimeout: const Duration(seconds: 30),
-    ));
+    dio = Dio(
+      BaseOptions(
+        baseUrl: _baseUrl,
+        connectTimeout: const Duration(seconds: 30),
+        receiveTimeout: const Duration(seconds: 30),
+      ),
+    );
     // إضافة AuthInterceptor مع تمرير Dio للـ Token Refresh
     dio.interceptors.add(AuthInterceptor(dio));
   }
