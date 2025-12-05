@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:almaali_university_center/core/constants/app_colors.dart';
+import 'package:almaali_university_center/core/constants/user_role.dart';
+import 'package:almaali_university_center/core/services/role_service.dart';
 import 'package:almaali_university_center/core/theme/app_theme.dart';
 import 'package:almaali_university_center/core/widgets/logo_widget.dart';
 import 'package:almaali_university_center/features/admin/data/models/violation_model.dart';
@@ -19,6 +21,7 @@ class ViolationsScreen extends StatefulWidget {
 class _ViolationsScreenState extends State<ViolationsScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  bool _isAdmin = false;
 
   @override
   void initState() {
@@ -30,6 +33,17 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
         _searchQuery = _searchController.text;
       });
     });
+    // ISS-003 FIX: Check user role for RBAC
+    _checkUserRole();
+  }
+
+  Future<void> _checkUserRole() async {
+    final role = await RoleService.getRole();
+    if (mounted) {
+      setState(() {
+        _isAdmin = role == UserRole.admin;
+      });
+    }
   }
 
   @override
@@ -157,13 +171,16 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
                     );
                   }
                   
+                  // ISS-006 FIX: Use PageStorageKey to preserve scroll position
                   return ListView.builder(
+                    key: const PageStorageKey<String>('violations_list'),
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     itemCount: violations.length,
                     itemBuilder: (context, index) {
                       final violation = violations[index];
                       return ViolationListCard(
                         violation: violation,
+                        isAdmin: _isAdmin,
                         onView: () {
                           Navigator.push(
                             context,
@@ -174,7 +191,7 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
                             ),
                           );
                         },
-                        onEdit: () {
+                        onEdit: _isAdmin ? () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -183,10 +200,10 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
                               ),
                             ),
                           );
-                        },
-                        onDelete: () {
+                        } : null,
+                        onDelete: _isAdmin ? () {
                           _deleteViolation(violation.id);
-                        },
+                        } : null,
                       );
                     },
                   );
@@ -232,15 +249,17 @@ class _ViolationsScreenState extends State<ViolationsScreen> {
 class ViolationListCard extends StatelessWidget {
   final Violation violation;
   final VoidCallback onView;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
+  final bool isAdmin;
 
   const ViolationListCard({
     super.key,
     required this.violation,
     required this.onView,
-    required this.onEdit,
-    required this.onDelete,
+    this.onEdit,
+    this.onDelete,
+    this.isAdmin = false,
   });
 
   @override
@@ -259,26 +278,33 @@ class ViolationListCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            // Action Buttons
+            // Action Buttons - ISS-003 FIX: Conditionally show Edit/Delete for Admin only
             Column(
               children: [
                 _ActionButton(
+                  key: const Key('view_violation_btn'),
                   icon: Icons.visibility_outlined,
                   label: 'عرض',
                   onPressed: onView,
                 ),
-                const SizedBox(height: 8),
-                _ActionButton(
-                  icon: Icons.edit_outlined,
-                  label: 'تعديل',
-                  onPressed: onEdit,
-                ),
-                const SizedBox(height: 8),
-                _ActionButton(
-                  icon: Icons.delete_outline,
-                  label: 'حـذف',
-                  onPressed: onDelete,
-                ),
+                if (isAdmin && onEdit != null) ...[
+                  const SizedBox(height: 8),
+                  _ActionButton(
+                    key: const Key('edit_violation_btn'),
+                    icon: Icons.edit_outlined,
+                    label: 'تعديل',
+                    onPressed: onEdit!,
+                  ),
+                ],
+                if (isAdmin && onDelete != null) ...[
+                  const SizedBox(height: 8),
+                  _ActionButton(
+                    key: const Key('delete_violation_btn'),
+                    icon: Icons.delete_outline,
+                    label: 'حـذف',
+                    onPressed: onDelete!,
+                  ),
+                ],
               ],
             ),
 
@@ -344,6 +370,7 @@ class _ActionButton extends StatelessWidget {
   final VoidCallback onPressed;
 
   const _ActionButton({
+    super.key,
     required this.icon,
     required this.label,
     required this.onPressed,

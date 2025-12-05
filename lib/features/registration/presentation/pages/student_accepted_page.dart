@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:almaali_university_center/core/routing/app_routes.dart';
+import 'package:almaali_university_center/core/routing/route_guard.dart';
 import 'package:almaali_university_center/core/constants/app_colors.dart';
 import 'package:almaali_university_center/core/constants/app_strings.dart';
 import 'package:almaali_university_center/core/constants/app_assets.dart';
+import 'package:almaali_university_center/core/constants/user_role.dart';
+import 'package:almaali_university_center/core/services/role_service.dart';
 import 'package:almaali_university_center/core/widgets/logo_widget.dart';
 import 'package:almaali_university_center/core/widgets/animated_widgets.dart';
 
@@ -73,9 +75,15 @@ class StudentAcceptedPage extends StatelessWidget {
               FadeInWidget(
                 delay: const Duration(milliseconds: 800),
                 child: AnimatedButton(
-                  onPressed: () {
-                    // Navigate to main app or home
-                    context.go(AppRoutes.home);
+                  key: const Key('enter_home_btn'),
+                  onPressed: () async {
+                    // ISS-004 FIX: Set user role to student before navigating
+                    await RoleService.saveRole(UserRole.student);
+                    if (context.mounted) {
+                      // Navigate to student home
+                      final target = RouteGuard.getDefaultRoute(UserRole.student);
+                      context.go(target);
+                    }
                   },
                   child: Container(
                     width: double.infinity,

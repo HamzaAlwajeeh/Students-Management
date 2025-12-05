@@ -1,5 +1,8 @@
 import 'package:almaali_university_center/core/constants/app_colors.dart';
+import 'package:almaali_university_center/core/constants/user_role.dart';
 import 'package:almaali_university_center/core/routing/app_routes.dart';
+import 'package:almaali_university_center/core/routing/route_guard.dart';
+import 'package:almaali_university_center/core/services/role_service.dart';
 import 'package:almaali_university_center/core/widgets/animated_widgets.dart';
 import 'package:almaali_university_center/core/widgets/logo_widget.dart';
 import 'package:almaali_university_center/logic/cubits/auth/auth_cubit.dart';
@@ -403,21 +406,15 @@ class _SignInPageState extends State<SignInPage> {
                                                                       if (success &&
                                                                           context
                                                                               .mounted) {
-                                                                        // UserRole
-                                                                        // role =
-                                                                        //     await RoleService.getRole();
-
-                                                                        // final defaultRoute =
-                                                                        //     RouteGuard.getDefaultRoute(
-                                                                        //       role,
-                                                                        //     );
-                                                                        // context.go(
-                                                                        //   defaultRoute,
-                                                                        // );
-
+                                                                        // ISS-001 FIX: Navigate to role-specific home
+                                                                        final UserRole role =
+                                                                            await RoleService.getRole();
+                                                                        final defaultRoute =
+                                                                            RouteGuard.getDefaultRoute(
+                                                                              role,
+                                                                            );
                                                                         context.go(
-                                                                          AppRoutes
-                                                                              .home,
+                                                                          defaultRoute,
                                                                         );
                                                                       }
                                                                     }

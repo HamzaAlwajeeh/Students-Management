@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:almaali_university_center/core/constants/app_colors.dart';
+import 'package:almaali_university_center/core/constants/user_role.dart';
+import 'package:almaali_university_center/core/services/role_service.dart';
 import 'package:almaali_university_center/core/theme/app_theme.dart';
 import 'package:almaali_university_center/core/widgets/logo_widget.dart';
 import 'package:almaali_university_center/features/admin/data/models/payment_model.dart';
@@ -19,6 +21,7 @@ class PaymentsScreen extends StatefulWidget {
 class _PaymentsScreenState extends State<PaymentsScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  bool _isAdmin = false;
 
   @override
   void initState() {
@@ -30,6 +33,17 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
         _searchQuery = _searchController.text;
       });
     });
+    // ISS-003 FIX: Check user role for RBAC
+    _checkUserRole();
+  }
+
+  Future<void> _checkUserRole() async {
+    final role = await RoleService.getRole();
+    if (mounted) {
+      setState(() {
+        _isAdmin = role == UserRole.admin;
+      });
+    }
   }
 
   @override
@@ -145,13 +159,16 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                     );
                   }
                   
+                  // ISS-006 FIX: Use PageStorageKey to preserve scroll position
                   return ListView.builder(
+                    key: const PageStorageKey<String>('payments_list'),
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     itemCount: payments.length,
                     itemBuilder: (context, index) {
                       final payment = payments[index];
                       return PaymentListCard(
                         payment: payment,
+                        isAdmin: _isAdmin,
                         onView: () {
                           Navigator.push(
                             context,
@@ -160,17 +177,17 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                             ),
                           );
                         },
-                        onEdit: () {
+                        onEdit: _isAdmin ? () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (_) => EditPaymentScreen(payment: payment),
                             ),
                           );
-                        },
-                        onDelete: () {
+                        } : null,
+                        onDelete: _isAdmin ? () {
                           _deletePayment(payment.id);
-                        },
+                        } : null,
                       );
                     },
                   );
@@ -214,15 +231,17 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
 class PaymentListCard extends StatelessWidget {
   final Payment payment;
   final VoidCallback onView;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
+  final bool isAdmin;
 
   const PaymentListCard({
     super.key,
     required this.payment,
     required this.onView,
-    required this.onEdit,
-    required this.onDelete,
+    this.onEdit,
+    this.onDelete,
+    this.isAdmin = false,
   });
 
   @override
@@ -241,25 +260,33 @@ class PaymentListCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
+            // ISS-003 FIX: Conditionally show Edit/Delete for Admin only
             Column(
               children: [
                 _ActionButton(
+                  key: const Key('view_payment_btn'),
                   icon: Icons.visibility_outlined,
                   label: 'عرض',
                   onPressed: onView,
                 ),
-                const SizedBox(height: 8),
-                _ActionButton(
-                  icon: Icons.edit_outlined,
-                  label: 'تعديل',
-                  onPressed: onEdit,
-                ),
-                const SizedBox(height: 8),
-                _ActionButton(
-                  icon: Icons.delete_outline,
-                  label: 'حـذف',
-                  onPressed: onDelete,
-                ),
+                if (isAdmin && onEdit != null) ...[
+                  const SizedBox(height: 8),
+                  _ActionButton(
+                    key: const Key('edit_payment_btn'),
+                    icon: Icons.edit_outlined,
+                    label: 'تعديل',
+                    onPressed: onEdit!,
+                  ),
+                ],
+                if (isAdmin && onDelete != null) ...[
+                  const SizedBox(height: 8),
+                  _ActionButton(
+                    key: const Key('delete_payment_btn'),
+                    icon: Icons.delete_outline,
+                    label: 'حـذف',
+                    onPressed: onDelete!,
+                  ),
+                ],
               ],
             ),
             const SizedBox(width: 16),
@@ -342,6 +369,7 @@ class _ActionButton extends StatelessWidget {
   final VoidCallback onPressed;
 
   const _ActionButton({
+    super.key,
     required this.icon,
     required this.label,
     required this.onPressed,

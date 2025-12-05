@@ -53,6 +53,14 @@ class RoleService {
     await prefs.remove(_roleKey);
     await prefs.remove(_userIdKey);
     await prefs.remove(_userNameKey);
+    await prefs.remove('token');
+  }
+
+  /// Check if role exists (not unauthenticated)
+  static Future<bool> hasValidRole() async {
+    final prefs = await SharedPreferences.getInstance();
+    final roleString = prefs.getString(_roleKey);
+    return roleString != null && roleString.isNotEmpty;
   }
 
   /// Check if user is authenticated

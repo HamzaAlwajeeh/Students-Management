@@ -1,6 +1,9 @@
 import 'dart:developer';
 
+import 'package:almaali_university_center/core/constants/user_role.dart';
 import 'package:almaali_university_center/core/routing/app_routes.dart';
+import 'package:almaali_university_center/core/routing/route_guard.dart';
+import 'package:almaali_university_center/core/services/role_service.dart';
 import 'package:almaali_university_center/core/services/shared_pref.dart';
 import 'package:almaali_university_center/core/widgets/animated_widgets.dart';
 import 'package:almaali_university_center/core/widgets/logo_widget.dart';
@@ -31,7 +34,16 @@ class _SplashPageState extends State<SplashPage> {
     if (mounted) {
       if (seenOnBoarding != null && seenOnBoarding) {
         if (token != null && token.isNotEmpty) {
-          context.go(AppRoutes.home);
+          // ISS-005 FIX: Check role and navigate to role-specific home
+          final role = await RoleService.getRole();
+          if (role != UserRole.unauthenticated) {
+            final defaultRoute = RouteGuard.getDefaultRoute(role);
+            log('Navigating to role-specific home: $defaultRoute for role: $role');
+            context.go(defaultRoute);
+          } else {
+            // Token exists but no valid role - go to signin
+            context.go(AppRoutes.signIn);
+          }
         } else {
           context.go(AppRoutes.signIn);
         }

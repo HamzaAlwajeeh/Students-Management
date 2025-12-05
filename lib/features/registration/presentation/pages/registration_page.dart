@@ -5,12 +5,55 @@ import 'package:almaali_university_center/core/constants/app_strings.dart';
 import 'package:almaali_university_center/core/widgets/logo_widget.dart';
 import 'package:almaali_university_center/core/widgets/animated_widgets.dart';
 
-class RegistrationPage extends StatelessWidget {
+// ISS-007 FIX: Convert to StatefulWidget for proper form validation
+class RegistrationPage extends StatefulWidget {
   const RegistrationPage({super.key});
 
   @override
+  State<RegistrationPage> createState() => _RegistrationPageState();
+}
+
+class _RegistrationPageState extends State<RegistrationPage> {
+  final _formKey = GlobalKey<FormState>();
+  final _fourthNameController = TextEditingController();
+  final _universityController = TextEditingController();
+  final _specializationController = TextEditingController();
+  final _mobileController = TextEditingController();
+  final _fatherNameController = TextEditingController();
+  final _fatherMobileController = TextEditingController();
+  final _skillsController = TextEditingController();
+
+  @override
+  void dispose() {
+    _fourthNameController.dispose();
+    _universityController.dispose();
+    _specializationController.dispose();
+    _mobileController.dispose();
+    _fatherNameController.dispose();
+    _fatherMobileController.dispose();
+    _skillsController.dispose();
+    super.dispose();
+  }
+
+  String? _validateRequired(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'هذا الحقل مطلوب';
+    }
+    return null;
+  }
+
+  String? _validateMobile(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'هذا الحقل مطلوب';
+    }
+    if (!RegExp(r'^[0-9]{9,15}$').hasMatch(value.trim())) {
+      return 'رقم الهاتف غير صحيح';
+    }
+    return null;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final formKey = GlobalKey<FormState>();
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -69,7 +112,7 @@ class RegistrationPage extends StatelessWidget {
                     borderRadius: BorderRadius.circular(30),
                   ),
                   child: Form(
-                    key: formKey,
+                    key: _formKey,
                     child: Column(
                       children: [
                         // Title
@@ -94,31 +137,60 @@ class RegistrationPage extends StatelessWidget {
 
                         const SizedBox(height: 32),
 
-                        // Form Fields
-                        _buildTextField(AppStrings.fourthName),
+                        // Form Fields with validation
+                        _buildTextField(
+                          label: AppStrings.fourthName,
+                          controller: _fourthNameController,
+                          validator: _validateRequired,
+                        ),
                         const SizedBox(height: 20),
-                        _buildTextField(AppStrings.universityInstitute),
+                        _buildTextField(
+                          label: AppStrings.universityInstitute,
+                          controller: _universityController,
+                          validator: _validateRequired,
+                        ),
                         const SizedBox(height: 20),
-                        _buildTextField(AppStrings.specialization),
+                        _buildTextField(
+                          label: AppStrings.specialization,
+                          controller: _specializationController,
+                          validator: _validateRequired,
+                        ),
                         const SizedBox(height: 20),
-                        _buildTextField(AppStrings.specialization),
+                        _buildTextField(
+                          label: AppStrings.mobileNumber,
+                          controller: _mobileController,
+                          validator: _validateMobile,
+                          keyboardType: TextInputType.phone,
+                        ),
                         const SizedBox(height: 20),
-                        _buildTextField(AppStrings.mobileNumber),
+                        _buildTextField(
+                          label: AppStrings.fatherName,
+                          controller: _fatherNameController,
+                          validator: _validateRequired,
+                        ),
                         const SizedBox(height: 20),
-                        _buildTextField(AppStrings.fatherName),
+                        _buildTextField(
+                          label: AppStrings.fatherMobile,
+                          controller: _fatherMobileController,
+                          validator: _validateMobile,
+                          keyboardType: TextInputType.phone,
+                        ),
                         const SizedBox(height: 20),
-                        _buildTextField(AppStrings.fatherMobile),
-                        const SizedBox(height: 20),
-                        _buildTextField(AppStrings.skills),
+                        _buildTextField(
+                          label: AppStrings.skills,
+                          controller: _skillsController,
+                        ),
 
                         const SizedBox(height: 32),
 
-                        // Submit Button
+                        // Submit Button with validation
                         AnimatedButton(
+                          key: const Key('submit_registration_btn'),
                           onPressed: () {
-                            // Navigate to accepted or rejected screen
-                            // For demo, randomly choose
-                            context.push('/student-accepted');
+                            // ISS-007 FIX: Validate form before submission
+                            if (_formKey.currentState!.validate()) {
+                              context.push('/student-accepted');
+                            }
                           },
                           child: Container(
                             width: double.infinity,
@@ -154,35 +226,68 @@ class RegistrationPage extends StatelessWidget {
     );
   }
 
-  Widget _buildTextField(String label) {
+  // ISS-007 FIX: Updated _buildTextField with validation support
+  Widget _buildTextField({
+    required String label,
+    TextEditingController? controller,
+    String? Function(String?)? validator,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 16,
-            color: Colors.white,
-            fontWeight: FontWeight.w500,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 16,
+                color: Colors.white,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            if (validator != null)
+              const Text(
+                ' *',
+                style: TextStyle(color: Colors.red, fontSize: 16),
+              ),
+          ],
         ),
         const SizedBox(height: 8),
-        Container(
-          height: 50,
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: AppColors.primaryGold, width: 2),
-          ),
-          child: const TextField(
-            textAlign: TextAlign.right,
-            style: TextStyle(color: Colors.white, fontSize: 16),
-            decoration: InputDecoration(
-              border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 14,
-              ),
+        TextFormField(
+          controller: controller,
+          validator: validator,
+          keyboardType: keyboardType,
+          textAlign: TextAlign.right,
+          style: const TextStyle(color: Colors.white, fontSize: 16),
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: Colors.white.withOpacity(0.2),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: AppColors.primaryGold, width: 2),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: AppColors.primaryGold, width: 2),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: AppColors.primaryGold, width: 3),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Colors.red, width: 2),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Colors.red, width: 3),
+            ),
+            errorStyle: const TextStyle(color: Colors.yellow),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
             ),
           ),
         ),

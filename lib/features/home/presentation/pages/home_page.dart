@@ -1,6 +1,6 @@
 import 'package:almaali_university_center/core/constants/app_colors.dart';
 import 'package:almaali_university_center/core/routing/app_routes.dart';
-import 'package:almaali_university_center/core/services/shared_pref.dart';
+import 'package:almaali_university_center/core/services/role_service.dart';
 import 'package:almaali_university_center/core/widgets/logo_widget.dart';
 import 'package:almaali_university_center/logic/cubits/auth/auth_cubit.dart';
 import 'package:almaali_university_center/logic/cubits/auth/auth_state.dart';
@@ -367,10 +367,13 @@ class _HomePageState extends State<HomePage> {
               _buildDrawerItem(
                 icon: Icons.logout_outlined,
                 label: 'تسجيل الخروج',
-                onTap: () {
+                onTap: () async {
                   Navigator.pop(context);
-                  context.pushReplacement(AppRoutes.signIn);
-                  Prefs.removeString('token');
+                  // ISS-002 FIX: Clear all user data including role
+                  await RoleService.clearUserData();
+                  if (context.mounted) {
+                    context.go(AppRoutes.signIn);
+                  }
                 },
               ),
             ],
